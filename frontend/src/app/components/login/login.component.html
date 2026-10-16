@@ -1,0 +1,122 @@
+<div class="login-page">
+  <div class="login-backdrop-overlay"></div>
+
+  <div class="login-container">
+    <!-- Left Logo Card -->
+    <div class="logo-card">
+      <div class="tottus-dots-grid">
+        <!-- Row 1 -->
+        <span class="dot dot-lime"></span>
+        <span class="dot dot-midgreen"></span>
+        <span class="dot dot-lime"></span>
+        <!-- Row 2 -->
+        <span class="dot dot-midgreen"></span>
+        <span class="dot dot-darkgreen"></span>
+        <span class="dot dot-midgreen"></span>
+        <!-- Row 3 -->
+        <span class="dot dot-lime"></span>
+        <span class="dot dot-midgreen"></span>
+        <span class="dot dot-lime"></span>
+      </div>
+      <h1 class="tottus-brand-text">TOTTUS</h1>
+    </div>
+
+    <!-- Right Login Card -->
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">Iniciar Sesión</h2>
+        <p class="form-subtitle">Ingrese sus credenciales para continuar</p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-alert">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="alert-icon">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Usuario Field -->
+        <div class="field-group">
+          <label class="field-label" for="username-input">USUARIO</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input
+              id="username-input"
+              type="text"
+              class="form-input"
+              [ngModel]="usuario()"
+              (ngModelChange)="usuario.set($event)"
+              name="usuario"
+              placeholder="ej. gerencia_admin"
+              required
+              autocomplete="username"
+            />
+          </div>
+        </div>
+
+        <!-- Contraseña Field -->
+        <div class="field-group">
+          <label class="field-label" for="password-input">CONTRASEÑA</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input
+              id="password-input"
+              [type]="showPassword() ? 'text' : 'password'"
+              class="form-input"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+              name="password"
+              placeholder="••••••••"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="toggle-visibility-btn"
+              (click)="togglePassword()"
+              tabindex="-1"
+              title="Mostrar/ocultar contraseña"
+            >
+              @if (showPassword()) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              }
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-btn" [disabled]="isLoading()">
+          @if (isLoading()) {
+            <span class="spinner"></span>
+            <span>Verificando...</span>
+          } @else {
+            <span>Ingresar</span>
+            <span class="arrow-icon">→</span>
+          }
+        </button>
+      </form>
+
+      <!-- Footer -->
+      <footer class="form-footer">
+        <p>© 2026 Tottus — Todos los derechos reservados</p>
+      </footer>
+    </div>
+  </div>
+</div>

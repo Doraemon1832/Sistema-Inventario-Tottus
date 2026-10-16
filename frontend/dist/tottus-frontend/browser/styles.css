@@ -1,0 +1,71 @@
+/* src/styles.scss */
+:root {
+  --tottus-green-dark: #005a2b;
+  --tottus-green-primary: #236b33;
+  --tottus-green-hover: #1e5a2b;
+  --tottus-green-light: #5fa728;
+  --tottus-green-lime: #bada2a;
+  --tottus-bg: #f4f6f8;
+  --tottus-surface: #ffffff;
+  --tottus-text-dark: #1f2937;
+  --tottus-text-muted: #6b7280;
+  --tottus-border: #e5e7eb;
+  --tottus-danger: #dc2626;
+  --tottus-warning: #d97706;
+  --tottus-success: #16a34a;
+  --tottus-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --tottus-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --tottus-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --tottus-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family:
+    "Plus Jakarta Sans",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
+  color: var(--tottus-text-dark);
+  background-color: var(--tottus-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+input,
+select,
+textarea {
+  font-family: inherit;
+  outline: none;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* angular:styles/global:styles */
+/*# sourceMappingURL=styles.css.map */
