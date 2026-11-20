@@ -1,0 +1,79 @@
+<main class="kardex-page">
+  <header class="kardex-heading">
+    <div>
+      <p class="eyebrow">SEGUIMIENTO</p>
+      <h1>Kardex de inventario</h1>
+      <p>Historial cronológico de movimientos de {{ siteName() }}.</p>
+    </div>
+  </header>
+
+  <section class="kardex-panel" aria-label="Filtros y movimientos del Kardex">
+    <form class="kardex-filters" (ngSubmit)="filtersChanged()">
+      <label>Tipo de movimiento
+        <select name="type" [(ngModel)]="typeFilter" (ngModelChange)="filtersChanged()">
+          <option value="TODOS">Todos</option>
+          <option value="ENTRADA">Entrada</option>
+          <option value="SALIDA">Salida</option>
+          <option value="AJUSTE">Ajuste</option>
+        </select>
+      </label>
+      <label>Motivo
+        <select name="reason" [(ngModel)]="reasonFilter" (ngModelChange)="filtersChanged()">
+          <option value="TODOS">Todos los motivos</option>
+          <option value="INGRESO_GENERAL">Ingreso general</option><option value="DEVOLUCION_CLIENTE">Devolución de cliente</option>
+          <option value="PRODUCCION">Producción</option><option value="BONIFICACION_PROVEEDOR">Bonificación de proveedor</option>
+          <option value="COMPRA">Compra</option><option value="VENTA">Venta</option><option value="DEVOLUCION_PROVEEDOR">Devolución a proveedor</option>
+          <option value="MERMA">Merma</option><option value="DESMEDRO">Desmedro</option><option value="DONACION">Donación</option>
+          <option value="CONSUMO_INTERNO">Consumo interno</option><option value="TRANSFERENCIA_ENVIADA">Traslado enviado</option>
+          <option value="TRANSFERENCIA_RECIBIDA">Traslado recibido</option><option value="DEVOLUCION_TRASLADO_ORIGEN">Retorno de traslado</option>
+        </select>
+      </label>
+      <label>Producto
+        <select name="product" [(ngModel)]="productFilter" (ngModelChange)="filtersChanged()">
+          <option [ngValue]="null">Todos los productos</option>
+          @for (item of products(); track item.idProducto) {
+            <option [ngValue]="item.idProducto">{{ item.codigoProducto }} · {{ item.nombreProducto }}</option>
+          }
+        </select>
+      </label>
+      <label>Desde<input name="from" type="date" [(ngModel)]="fromDate" (ngModelChange)="filtersChanged()" /></label>
+      <label>Hasta<input name="to" type="date" [(ngModel)]="toDate" (ngModelChange)="filtersChanged()" /></label>
+    </form>
+
+    @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+    @if (loading()) { <p class="table-message" role="status">Cargando movimientos…</p> }
+    @else if (!error() && movements().length === 0) { <p class="table-message">No hay movimientos para los filtros seleccionados.</p> }
+    @else if (!error()) {
+      <div class="table-responsive">
+        <table class="kardex-table">
+          <thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Saldo anterior → posterior</th><th>Responsable</th><th>Referencia / motivo</th></tr></thead>
+          <tbody>
+            @for (movement of movements(); track movement.idMovimiento) {
+              <tr>
+                <td data-label="Fecha y hora">{{ formatDate(movement.fecha) }}</td>
+                <td data-label="Tipo">
+                  @if (movement.tipo === 'ENTRADA') { <span class="movement-badge income">Entrada</span> }
+                  @else if (movement.tipo === 'SALIDA') { <span class="movement-badge expense">Salida</span> }
+                  @else { <span class="movement-badge adjustment">Ajuste</span> }
+                  @if (movement.subtipo) { <small class="movement-subtype">{{ labelSubtype(movement.subtipo) }}</small> }
+                </td>
+                <td data-label="Producto"><strong>{{ movement.codigoProducto }}</strong><span class="product-name">{{ movement.nombreProducto }}</span></td>
+                <td data-label="Cantidad" class="quantity" [class.negative]="movement.tipo === 'SALIDA'" [class.adjustment]="movement.tipo === 'AJUSTE'">{{ movement.tipo === 'SALIDA' ? '−' : movement.tipo === 'ENTRADA' ? '+' : '' }}{{ movement.cantidad }} {{ movement.unidadMedida || 'unidad no definida' }}</td>
+                <td data-label="Saldo anterior → posterior">{{ movement.stockAnterior ?? 'No disponible' }} → {{ movement.stockPosterior ?? 'No disponible' }}</td>
+                <td data-label="Responsable">{{ movement.usuario }}</td>
+                <td data-label="Referencia / motivo"><span class="reference-value" [title]="(movement.codigoTraslado ? movement.codigoTraslado + ' · ' : '') + movement.referencia">{{ movement.codigoTraslado ? movement.codigoTraslado + ' · ' : '' }}{{ movement.referencia }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer class="pagination" role="group" aria-label="Paginación del Kardex">
+        <span aria-live="polite">{{ totalElements() }} movimientos · Página {{ page() + 1 }} de {{ totalPages() }}</span>
+        <div class="pagination-actions">
+          <button type="button" class="secondary" [disabled]="page() === 0 || loading()" (click)="changePage(-1)" aria-label="Página anterior">Anterior</button>
+          <button type="button" class="secondary" [disabled]="page() + 1 >= totalPages() || loading()" (click)="changePage(1)" aria-label="Página siguiente">Siguiente</button>
+        </div>
+      </footer>
+    }
+  </section>
+</main>

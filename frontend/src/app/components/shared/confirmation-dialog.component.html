@@ -1,0 +1,22 @@
+<div class="dialog-backdrop" (click)="cancel($event)">
+  <section #dialog class="confirmation-dialog" [class.danger]="tone === 'danger'" role="dialog" aria-modal="true"
+    [attr.aria-labelledby]="titleId" tabindex="-1" (click)="$event.stopPropagation()">
+    <header class="dialog-header">
+      <span class="dialog-icon" aria-hidden="true">
+        @if (tone === 'danger') { ! } @else { ? }
+      </span>
+      <h2 [id]="titleId">{{ title }}</h2>
+      <button type="button" class="dialog-close" aria-label="Cerrar confirmación" [disabled]="busy" (click)="cancel()">×</button>
+    </header>
+    <div class="dialog-body">
+      <p class="dialog-message">{{ message }}</p>
+      <ng-content />
+    </div>
+    <footer class="dialog-actions">
+      <button type="button" class="dialog-cancel" [disabled]="busy" (click)="cancel()">Cancelar</button>
+      <button type="button" class="dialog-confirm" [class.danger]="tone === 'danger'" [disabled]="busy" (click)="confirm()">
+        {{ busy ? 'Guardando…' : confirmText }}
+      </button>
+    </footer>
+  </section>
+</div>

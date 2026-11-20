@@ -34,6 +34,9 @@ public class Producto {
     @Column(name = "stock_minimo")
     private Integer stockMinimo;
 
+    @Column(name = "unidad_medida", length = 30)
+    private String unidadMedida;
+
     @Builder.Default
     @Column(name = "estado")
     private Boolean estado = true;

@@ -1,6 +1,7 @@
 <div class="inventario-page">
 
-  <!-- KPI Header Cards -->
+
+  @if (canSeeSummary()) {
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-icon-wrap icon-blue">
@@ -72,10 +73,12 @@
     </div>
   </div>
 
-  <!-- Control Toolbar -->
+  }
+
+
   <div class="toolbar-section">
     <div class="filter-controls">
-      <!-- Search Input -->
+
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
@@ -93,20 +96,22 @@
         }
       </div>
 
-      <!-- Categoria Selector -->
-      <select
-        class="filter-select"
-        [ngModel]="selectedCategoriaId()"
-        (ngModelChange)="selectedCategoriaId.set($event ? Number($event) : null); onFilterChange()"
-      >
-        <option [ngValue]="null">Todas las Categorías</option>
-        @for (cat of categorias(); track cat.idCategoria) {
-          <option [value]="cat.idCategoria">{{ cat.nombre }}</option>
-        }
-      </select>
+      @if (canManageProducts()) {
+        <select
+          class="filter-select"
+          aria-label="Filtrar por categoría"
+          [ngModel]="selectedCategoriaId()"
+          (ngModelChange)="selectedCategoriaId.set($event ? Number($event) : null); onFilterChange()"
+        >
+          <option [ngValue]="null">Todas las Categorías</option>
+          @for (cat of categorias(); track cat.idCategoria) {
+            <option [value]="cat.idCategoria">{{ cat.nombre }}</option>
+          }
+        </select>
+      }
 
-      <!-- Segmented Status Pills (Stock) -->
-      <div class="status-pills">
+
+      <div class="status-pills" role="group" aria-label="Filtrar por nivel de stock">
         <button
           type="button"
           class="pill"
@@ -141,8 +146,8 @@
         </button>
       </div>
 
-      <!-- Segmented Availability Pills (Disponibilidad) -->
-      <div class="status-pills">
+
+      <div class="status-pills" role="group" aria-label="Filtrar por estado de producto">
         <button
           type="button"
           class="pill"
@@ -173,19 +178,9 @@
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-      <button class="btn btn-outline" (click)="abrirKardex()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        <span>Kardex / Auditoría</span>
-      </button>
 
+    <div class="action-buttons">
+      @if (canManageProducts()) {
       <button class="btn btn-primary" (click)="abrirModalProducto()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
@@ -194,10 +189,11 @@
         </svg>
         <span>Nuevo Producto</span>
       </button>
+      }
     </div>
   </div>
 
-  <!-- Inventory Main Table -->
+
   <div class="table-card">
     @if (isLoading()) {
       <div class="table-loading">
@@ -208,23 +204,21 @@
       <div class="empty-state">
         <div class="empty-icon">📦</div>
         <h3>No se encontraron productos</h3>
-        <p>Intente modificar los filtros o registre un nuevo producto.</p>
+        <p>Prueba cambiando los filtros de búsqueda.</p>
       </div>
     } @else {
       <div class="table-responsive">
-        <table class="inventario-table">
+        <table class="inventario-table catalog-table">
           <thead>
             <tr>
               <th>CÓDIGO SKU</th>
-              <th>PRODUCTO</th>
-              <th>CATEGORÍA</th>
+              <th>PRODUCTO Y CATEGORÍA</th>
               <th>UBICACIÓN EN TIENDA</th>
               <th>PRECIO</th>
               <th>STOCK ACTUAL</th>
               <th>STOCK MÍNIMO</th>
-              <th>NIVEL STOCK</th>
-              <th>ESTADO</th>
-              <th class="text-right">ACCIONES</th>
+              <th>NIVEL DE STOCK Y ESTADO</th>
+              @if (canManageProducts() || canAdjustStock()) { <th class="text-right">ACCIONES</th> }
             </tr>
           </thead>
           <tbody>
@@ -238,13 +232,11 @@
                 <td class="cell-product">
                   <div class="product-info-cell">
                     <span class="product-name" [class.text-muted]="item.estado === false">{{ item.nombreProducto }}</span>
+                    <span class="category-chip product-category-chip" [class.chip-inactivo]="item.estado === false">{{ item.categoria }}</span>
                     @if (item.estado === false) {
                       <span class="inactive-subtag">Fuera de circulación</span>
                     }
                   </div>
-                </td>
-                <td>
-                  <span class="category-chip" [class.chip-inactivo]="item.estado === false">{{ item.categoria }}</span>
                 </td>
                 <td class="cell-location">
                   <span class="location-tag">
@@ -260,7 +252,7 @@
                 </td>
                 <td class="cell-stock">
                   <div class="stock-progress-wrap">
-                    <span class="stock-number">{{ item.stockActual }} unids</span>
+                    <span class="stock-number">{{ item.stockActual }} {{ item.unidadMedida || 'unidad no definida' }}</span>
                     <div class="progress-bar-bg">
                       <div
                         class="progress-bar-fill"
@@ -274,91 +266,67 @@
                   </div>
                 </td>
                 <td class="cell-min">
-                  {{ item.stockMinimo }} unids
+                  {{ item.stockMinimo }} {{ item.unidadMedida || 'unidad no definida' }}
                 </td>
-                <td>
-                  @if (item.estadoStock === 'OPTIMO') {
-                    <span class="badge badge-success">✓ En Stock</span>
-                  } @else if (item.estadoStock === 'BAJO_STOCK') {
-                    <span class="badge badge-warning">⚠ Stock Bajo</span>
-                  } @else {
-                    <span class="badge badge-danger">✕ Agotado</span>
-                  }
-                </td>
-                <td>
-                  @if (item.estado !== false) {
-                    <span class="badge badge-activo" title="Producto activo para operaciones">
-                      <span class="dot-indicator dot-green"></span> Activo
-                    </span>
-                  } @else {
-                    <span class="badge badge-inactivo" title="Producto inactivo - No disponible para operaciones">
-                      <span class="dot-indicator dot-gray"></span> Inactivo
-                    </span>
-                  }
-                </td>
-                <td class="text-right cell-actions">
-                  <div class="action-btn-group">
-                    <!-- Botón Editar Producto (Siempre disponible) -->
-                    <button
-                      class="btn-icon btn-edit"
-                      (click)="abrirModalEdicion(item)"
-                      title="Editar datos del producto"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                      </svg>
-                    </button>
-
-                    @if (item.estado !== false) {
-                      <button
-                        class="btn-icon btn-entrada"
-                        (click)="abrirModalMovimiento(item, 'ENTRADA')"
-                        title="Registrar Entrada"
-                      >
-                        +
-                      </button>
-                      <button
-                        class="btn-icon btn-salida"
-                        (click)="abrirModalMovimiento(item, 'SALIDA')"
-                        title="Registrar Salida"
-                      >
-                        -
-                      </button>
-                      <button
-                        class="btn-icon btn-ajuste"
-                        (click)="abrirModalMovimiento(item, 'AJUSTE')"
-                        title="Ajustar Stock"
-                      >
-                        ⚙
-                      </button>
-                      <!-- Botón Inactivar -->
-                      <button
-                        class="btn-icon btn-inactivar"
-                        (click)="abrirModalInactivar(item)"
-                        title="Inactivar Producto"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                        </svg>
-                      </button>
+                <td class="cell-state">
+                  <div class="inventory-state-stack">
+                    @if (item.estadoStock === 'OPTIMO') {
+                      <span class="badge badge-success">En Stock</span>
+                    } @else if (item.estadoStock === 'BAJO_STOCK') {
+                      <span class="badge badge-warning">Stock Bajo</span>
                     } @else {
-                      <!-- Botón Reactivar Producto -->
-                      <button
-                        class="btn-reactivar"
-                        (click)="reactivarProducto(item)"
-                        title="Reactivar producto y reanudar disponibilidad"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="1 4 1 10 7 10"></polyline>
-                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                        </svg>
-                        <span>Reactivar</span>
-                      </button>
+                      <span class="badge badge-danger">Agotado</span>
+                    }
+                    @if (item.estado !== false) {
+                      <span class="badge badge-activo" title="Producto activo para operaciones">
+                        <span class="dot-indicator dot-green"></span> Activo
+                      </span>
+                    } @else {
+                      <span class="badge badge-inactivo" title="Producto inactivo - No disponible para operaciones">
+                        <span class="dot-indicator dot-gray"></span> Inactivo
+                      </span>
                     }
                   </div>
                 </td>
+                @if (canManageProducts() || canAdjustStock()) {
+                <td class="text-right cell-actions">
+                  <div class="action-btn-group">
+                    @if (canManageProducts()) {
+                      <button type="button" class="btn-icon btn-edit" (click)="abrirModalEdicion(item)"
+                        title="Editar producto" aria-label="Editar producto">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </button>
+                    }
+                    @if (canAdjustStock() && item.estado !== false) {
+                      <button type="button" class="btn-icon btn-ajuste" (click)="abrirModalMovimiento(item, 'AJUSTE')"
+                        title="Ajustar stock" aria-label="Ajustar stock">
+                        ⚙
+                      </button>
+                    }
+                    @if (canManageProducts()) {
+                      @if (item.estado !== false) {
+                        <button type="button" class="btn-icon btn-inactivar" (click)="abrirModalInactivar(item)"
+                          title="Inactivar producto" aria-label="Inactivar producto">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                          </svg>
+                        </button>
+                      } @else {
+                        <button type="button" class="btn-icon btn-reactivar" (click)="reactivarProducto(item)"
+                          title="Reactivar producto" aria-label="Reactivar producto">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="m5 12 4 4L19 6"></path>
+                          </svg>
+                        </button>
+                      }
+                    }
+                  </div>
+                </td>
+                }
               </tr>
             }
           </tbody>
@@ -367,12 +335,12 @@
     }
   </div>
 
-  <!-- Modal: Registrar Movimiento -->
+
   @if (showMovimientoModal()) {
     <div class="modal-backdrop" (click)="cerrarModalMovimiento()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="movement-dialog-title" tabindex="-1" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h3>Registrar Movimiento de Inventario</h3>
+          <h3 id="movement-dialog-title">{{ movTipo() === 'AJUSTE' ? 'Ajustar inventario' : 'Registrar Movimiento de Inventario' }}</h3>
           <button class="modal-close-btn" (click)="cerrarModalMovimiento()">✕</button>
         </div>
 
@@ -383,87 +351,59 @@
             </div>
           }
 
-          <div class="form-group">
-            <label>Producto Seleccionado</label>
-            <select
-              class="form-control"
-              [ngModel]="selectedItemForMov()?.idInventario"
-              (ngModelChange)="selectedItemForMov.set(productosParaMovimiento().find(i => i.idInventario === Number($event)) || null)"
-            >
-              @if (productosParaMovimiento().length === 0) {
-                <option [ngValue]="null" disabled>No hay productos activos disponibles para movimientos</option>
-              }
-              @for (item of productosParaMovimiento(); track item.idInventario) {
-                <option [value]="item.idInventario">
-                  {{ item.codigoProducto }} — {{ item.nombreProducto }} (Stock actual: {{ item.stockActual }})
-                </option>
-              }
-            </select>
+          <div class="operation-context" aria-label="Datos del movimiento">
+            <span><strong>Sede:</strong> {{ selectedItemForMov()?.nombreSede }}</span>
+            <span><strong>Responsable:</strong> {{ authService.currentUser()?.usuario }}</span>
+            <span><strong>Fecha y hora:</strong> al confirmar</span>
           </div>
 
-          <div class="form-group">
-            <label>Tipo de Operación</label>
-            <div class="type-toggle-group">
-              <button
-                type="button"
-                class="type-btn"
-                [class.active-entrada]="movTipo() === 'ENTRADA'"
-                (click)="movTipo.set('ENTRADA')"
-              >
-                ➕ Entrada / Ingreso
-              </button>
-              <button
-                type="button"
-                class="type-btn"
-                [class.active-salida]="movTipo() === 'SALIDA'"
-                (click)="movTipo.set('SALIDA')"
-              >
-                ➖ Salida / Merma
-              </button>
-              <button
-                type="button"
-                class="type-btn"
-                [class.active-ajuste]="movTipo() === 'AJUSTE'"
-                (click)="movTipo.set('AJUSTE')"
-              >
-                ⚙ Ajuste de Stock
-              </button>
+          @if (movTipo() === 'AJUSTE') {
+            <section class="adjust-product-summary" aria-label="Producto fijo del ajuste">
+              <div><span>Producto seleccionado</span><strong>{{ selectedItemForMov()?.codigoProducto }} · {{ selectedItemForMov()?.nombreProducto }}</strong></div>
+              <div><span>Categoría</span><strong>{{ selectedItemForMov()?.categoria || 'Sin categoría' }}</strong></div>
+              <div><span>Sede autorizada</span><strong>{{ selectedItemForMov()?.nombreSede }}</strong></div>
+              <div><span>Stock actual</span><strong>{{ selectedItemForMov()?.stockActual }} unidades</strong></div>
+            </section>
+          } @else {
+            <div class="form-group">
+              <label for="movement-product">Producto seleccionado</label>
+              <select id="movement-product" class="form-control" [ngModel]="selectedItemForMov()?.idInventario"
+                (ngModelChange)="selectedItemForMov.set(productosParaMovimiento().find(i => i.idInventario === Number($event)) || null)">
+                @if (productosParaMovimiento().length === 0) { <option [ngValue]="null" disabled>No hay productos activos disponibles para movimientos</option> }
+                @for (item of productosParaMovimiento(); track item.idInventario) {
+                  <option [value]="item.idInventario">{{ item.codigoProducto }} · {{ item.nombreProducto }} (Stock actual: {{ item.stockActual }})</option>
+                }
+              </select>
             </div>
-          </div>
+          }
 
           <div class="form-group">
-            <label>
-              @if (movTipo() === 'AJUSTE') {
-                Nuevo Stock Físico Total
-              } @else {
-                Cantidad de Unidades
-              }
-            </label>
+            <label>Tipo de operación</label>
+            @if (movTipo() === 'AJUSTE') {
+              <p class="movement-type-description">Ajuste de stock: ingresa el nuevo stock final como valor absoluto. No es una variación.</p>
+            } @else if (movTipo() === 'ENTRADA') {
+              <p class="movement-type-description">Entrada de unidades: la cantidad ingresada se sumará al stock al confirmar.</p>
+            } @else {
+              <p class="movement-type-description">Salida de unidades: la cantidad se descontará del stock al confirmar.</p>
+            }
+          </div>
+          <div class="form-group">
+            <label for="adjust-stock-final">{{ movTipo() === 'AJUSTE' ? 'Nuevo stock final (valor absoluto)' : 'Cantidad de unidades' }}</label>
             <input
+              id="adjust-stock-final"
               type="number"
               class="form-control"
-              min="1"
+              [min]="movTipo() === 'AJUSTE' ? 0 : 1"
+              step="1"
               [ngModel]="movCantidad()"
-              (ngModelChange)="movCantidad.set(Number($event))"
-              placeholder="Ej. 25"
+              (ngModelChange)="actualizarCantidadMovimiento($event)"
+              placeholder="Ingresa unidades"
             />
           </div>
-
-          <div class="form-group">
-            <label>Referencia / Documento / Motivo</label>
-            <input
-              type="text"
-              class="form-control"
-              [ngModel]="movReferencia()"
-              (ngModelChange)="movReferencia.set($event)"
-              placeholder="Ej. Guía de remisión GR-004-8192 o Merma por daño"
-            />
-          </div>
-
           @if (selectedItemForMov()) {
             <div class="stock-calc-preview">
               <span>Stock actual: <strong>{{ selectedItemForMov()?.stockActual }}</strong></span>
-              <span>→ Proyección final: 
+              <span>→ Proyección final:
                 <strong class="text-success">
                   @if (movTipo() === 'ENTRADA') {
                     {{ (selectedItemForMov()?.stockActual || 0) + movCantidad() }}
@@ -477,15 +417,31 @@
               </span>
             </div>
           }
+          <div class="form-group">
+            <label for="adjust-reference">Referencia documental / motivo</label>
+            <input
+              id="adjust-reference"
+              type="text"
+              class="form-control"
+              [ngModel]="movReferencia()"
+              (ngModelChange)="movReferencia.set($event)"
+              maxlength="100"
+              required
+              aria-describedby="adjust-reference-help"
+              placeholder="Guía, comprobante u orden; o describe el motivo del ajuste"
+              autocomplete="off"
+            />
+            <small id="adjust-reference-help">El ajuste registra el stock final absoluto y conserva aquí el documento o motivo.</small>
+          </div>
         </div>
 
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="cerrarModalMovimiento()">Cancelar</button>
-          <button class="btn btn-primary" [disabled]="movLoading()" (click)="guardarMovimiento()">
+          <button class="btn btn-primary" [disabled]="movLoading()" (click)="guardarMovimiento($event)">
             @if (movLoading()) {
               Procesando...
             } @else {
-              Confirmar Movimiento
+              {{ movTipo() === 'AJUSTE' ? 'Revisar ajuste' : (movTipo() === 'ENTRADA' ? 'Revisar ingreso' : 'Revisar egreso') }}
             }
           </button>
         </div>
@@ -493,12 +449,12 @@
     </div>
   }
 
-  <!-- Modal: Nuevo Producto -->
+
   @if (showProductoModal()) {
     <div class="modal-backdrop" (click)="cerrarModalProducto()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="product-dialog-title" tabindex="-1" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h3>Dar de Alta Nuevo Producto en Inventario</h3>
+          <h3 id="product-dialog-title">Dar de Alta Nuevo Producto en Inventario</h3>
           <button class="modal-close-btn" (click)="cerrarModalProducto()">✕</button>
         </div>
 
@@ -544,6 +500,11 @@
               (ngModelChange)="nuevoNombre.set($event)"
               placeholder="Ej. Fideos Spaghetti Don Vittorio 500g"
             />
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de medida</label>
+            <input type="text" class="form-control" maxlength="30" [ngModel]="nuevoUnidadMedida()" (ngModelChange)="nuevoUnidadMedida.set($event)" placeholder="Ej. unidad, kg, caja" />
           </div>
 
           <div class="form-row">
@@ -607,87 +568,13 @@
     </div>
   }
 
-  <!-- Modal: Kardex / Auditoría de Movimientos -->
-  @if (showKardexModal()) {
-    <div class="modal-backdrop" (click)="cerrarKardex()">
-      <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div>
-            <h3>Kardex de Movimientos — Historial y Auditoría</h3>
-            <p class="modal-subtitle">Registro cronológico detallado de entradas, salidas y ajustes</p>
-          </div>
-          <button class="modal-close-btn" (click)="cerrarKardex()">✕</button>
-        </div>
 
-        <div class="modal-body p-0">
-          @if (movimientosHistorial().length === 0) {
-            <div class="empty-state">
-              <p>No se encontraron movimientos registrados para esta sede.</p>
-            </div>
-          } @else {
-            <div class="table-responsive">
-              <table class="inventario-table">
-                <thead>
-                  <tr>
-                    <th>FECHA Y HORA</th>
-                    <th>TIPO</th>
-                    <th>PRODUCTO</th>
-                    <th>CANTIDAD</th>
-                    <th>USUARIO</th>
-                    <th>REFERENCIA / MOTIVO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (m of movimientosHistorial(); track m.idMovimiento) {
-                    <tr>
-                      <td class="cell-date">
-                        {{ m.fecha | date:'dd/MM/yyyy HH:mm' }}
-                      </td>
-                      <td>
-                        @if (m.tipo === 'ENTRADA') {
-                          <span class="badge badge-success">➕ ENTRADA</span>
-                        } @else if (m.tipo === 'SALIDA') {
-                          <span class="badge badge-danger">➖ SALIDA</span>
-                        } @else {
-                          <span class="badge badge-info">⚙ AJUSTE</span>
-                        }
-                      </td>
-                      <td>
-                        <strong>{{ m.codigoProducto }}</strong> — {{ m.nombreProducto }}
-                      </td>
-                      <td>
-                        <strong [class.text-success]="m.tipo === 'ENTRADA'" [class.text-danger]="m.tipo === 'SALIDA'">
-                          {{ m.tipo === 'SALIDA' ? '-' : '+' }}{{ m.cantidad }} unids
-                        </strong>
-                      </td>
-                      <td>
-                        <span class="user-chip-small">{{ m.usuario }}</span>
-                      </td>
-                      <td class="cell-ref">
-                        {{ m.referencia }}
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="cerrarKardex()">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- Modal: Editar Producto -->
   @if (showEditModal()) {
     <div class="modal-backdrop" (click)="cerrarModalEdicion()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-product-dialog-title" tabindex="-1" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div>
-            <h3>Editar Datos de Producto</h3>
+            <h3 id="edit-product-dialog-title">Editar Datos de Producto</h3>
             <p class="modal-subtitle">Modificación de información del catálogo y ubicación</p>
           </div>
           <button class="modal-close-btn" (click)="cerrarModalEdicion()">✕</button>
@@ -736,6 +623,11 @@
               (ngModelChange)="editNombre.set($event)"
               placeholder="Nombre comercial del producto"
             />
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de medida</label>
+            <input type="text" class="form-control" maxlength="30" [ngModel]="editUnidadMedida()" (ngModelChange)="editUnidadMedida.set($event)" placeholder="Ej. unidad, kg, caja" />
           </div>
 
           <div class="form-row">
@@ -789,10 +681,10 @@
     </div>
   }
 
-  <!-- Modal: Confirmar Inactivación de Producto -->
+
   @if (showInactivarModal()) {
     <div class="modal-backdrop" (click)="cerrarModalInactivar()">
-      <div class="modal-card modal-confirm" (click)="$event.stopPropagation()">
+      <div class="modal-card modal-confirm" role="dialog" aria-modal="true" aria-labelledby="deactivate-product-dialog-title" tabindex="-1" (click)="$event.stopPropagation()">
         <div class="modal-header header-warning">
           <div class="confirm-header-content">
             <div class="warning-icon-badge">
@@ -802,7 +694,7 @@
               </svg>
             </div>
             <div>
-              <h3>Inactivar Producto</h3>
+              <h3 id="deactivate-product-dialog-title">Inactivar Producto</h3>
               <p class="modal-subtitle">Confirmación de baja temporal en operaciones</p>
             </div>
           </div>
@@ -855,4 +747,36 @@
     </div>
   }
 
+  @if (movementConfirmOpen()) {
+    <app-confirmation-dialog title="Confirmar ajuste de inventario"
+      message="¿Deseas guardar este nuevo stock final? El servidor volverá a validar el producto y la sede."
+      confirmText="Confirmar ajuste" [busy]="movLoading()" [restoreFocus]="false"
+      (confirmed)="confirmarMovimiento()" (cancelled)="cancelarRevisionMovimiento()">
+      <dl class="confirmation-summary">
+        <div><dt>Sede</dt><dd>{{ selectedItemForMov()?.nombreSede }}</dd></div>
+        <div><dt>Responsable</dt><dd>{{ authService.currentUser()?.usuario }}</dd></div>
+        <div><dt>Producto</dt><dd>{{ selectedItemForMov()?.codigoProducto }} · {{ selectedItemForMov()?.nombreProducto }}</dd></div>
+        <div><dt>Fecha y hora</dt><dd>Se asignará al confirmar en el servidor</dd></div>
+        <div><dt>Referencia documental / motivo</dt><dd>{{ movReferencia() }}</dd></div>
+        <div><dt>Stock actual</dt><dd>{{ selectedItemForMov()?.stockActual }} unidades</dd></div>
+        <div><dt>Stock final</dt><dd>{{ movCantidad() }} unidades</dd></div>
+        <div><dt>Diferencia</dt><dd>{{ movCantidad() - (selectedItemForMov()?.stockActual || 0) }} unidades</dd></div>
+      </dl>
+      @if (movError()) { <p class="confirmation-error" role="alert">{{ movError() }}</p> }
+    </app-confirmation-dialog>
+  }
+  @if (itemParaReactivar(); as item) {
+    <app-confirmation-dialog title="Reactivar producto"
+      message="¿Deseas volver a habilitar este producto para las operaciones permitidas?"
+      confirmText="Reactivar producto" [busy]="reactivarLoading()"
+      (confirmed)="confirmarReactivacion()" (cancelled)="cancelarReactivacion()">
+      <dl class="confirmation-summary">
+        <div><dt>SKU</dt><dd>{{ item.codigoProducto }}</dd></div>
+        <div><dt>Producto</dt><dd>{{ item.nombreProducto }}</dd></div>
+        <div><dt>Sede</dt><dd>{{ item.nombreSede }}</dd></div>
+        <div><dt>Stock actual</dt><dd>{{ item.stockActual }} unidades</dd></div>
+      </dl>
+      @if (reactivarError()) { <p class="confirmation-error" role="alert">{{ reactivarError() }}</p> }
+    </app-confirmation-dialog>
+  }
 </div>

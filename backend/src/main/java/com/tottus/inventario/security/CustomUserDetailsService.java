@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -23,16 +23,25 @@ public class CustomUserDetailsService implements UserDetailsService {
         Usuario usuario = usuarioRepository.findByUsuario(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
 
-        if (Boolean.FALSE.equals(usuario.getEstado())) {
+        if (!Boolean.TRUE.equals(usuario.getEstado())) {
             throw new UsernameNotFoundException("Usuario inactivo: " + username);
         }
 
-        String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombre() : "USER";
+        if (usuario.getRol() == null || !Boolean.TRUE.equals(usuario.getRol().getEstado())) {
+            throw new UsernameNotFoundException("Rol de usuario inactivo o no asignado");
+        }
+
+        String rolNombre = usuario.getRol().getNombre();
+
+        var authorities = new ArrayList<SimpleGrantedAuthority>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + rolNombre));
+        if (Boolean.TRUE.equals(usuario.getCambioPasswordRequerido()))
+            authorities.add(new SimpleGrantedAuthority("ROLE_PASSWORD_CHANGE_REQUIRED"));
 
         return new User(
                 usuario.getUsuario(),
                 usuario.getPasswordHash(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + rolNombre))
+                authorities
         );
     }
 }

@@ -1,0 +1,60 @@
+<main class="transfers-page">
+  <header class="page-heading"><div><p class="eyebrow">OPERACIONES</p><h1>Traslados entre sedes</h1><p>Despacha productos desde tu sede y registra la recepción en destino con trazabilidad en Kardex.</p></div></header>
+
+  @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+  @if (success()) { <p class="notice success" role="status">{{ success() }}</p> }
+
+  @if (canCreate()) {
+    <section class="transfer-panel create-panel" aria-labelledby="create-title">
+      <div class="panel-heading"><div><h2 id="create-title">Nuevo traslado</h2><p>La solicitud no modifica las existencias hasta confirmar el despacho.</p></div></div>
+      <form (ngSubmit)="create()">
+        <div class="form-grid">
+          <label>Sede de origen<input [value]="authSiteName" readonly aria-readonly="true" /></label>
+          <label>Sede de destino<select name="destination" [(ngModel)]="destinoId" required><option [ngValue]="null">Selecciona sede</option>@for (site of sites(); track site.idSede) { @if (site.idSede !== siteId) { <option [ngValue]="site.idSede">{{ site.nombre }}</option> } }</select></label>
+          <label>Referencia<input name="reference" [(ngModel)]="referencia" maxlength="100" required /></label>
+          <label class="wide">Observaciones<textarea name="notes" [(ngModel)]="observaciones" maxlength="2000" rows="2"></textarea></label>
+        </div>
+        <div class="lines-heading"><h3>Productos</h3><button type="button" class="secondary" (click)="addLine()">Agregar producto</button></div>
+        <div class="line-list">
+          @for (line of details; track $index; let i = $index) {
+            <div class="line-row">
+              <label>Producto<select [name]="'product-' + i" [(ngModel)]="line.idProducto" required><option [ngValue]="null">Selecciona producto</option>@for (product of products(); track product.idProducto) { <option [ngValue]="product.idProducto">{{ product.codigoProducto }} · {{ product.nombreProducto }} (stock: {{ product.stockActual }} {{ product.unidadMedida || 'unidad no definida' }})</option> }</select></label>
+              <label>Cantidad<input [name]="'quantity-' + i" type="number" min="1" step="1" [(ngModel)]="line.cantidad" required /></label>
+              <span class="available">Disponible: {{ stock(line.idProducto) }}</span>
+              <button type="button" class="icon-button" (click)="removeLine(i)" [disabled]="details.length === 1" aria-label="Quitar producto">Quitar</button>
+            </div>
+          }
+        </div>
+        <div class="form-actions"><button type="submit" [disabled]="busy()">{{ busy() ? 'Guardando…' : 'Crear solicitud' }}</button></div>
+      </form>
+    </section>
+  }
+
+  <section class="transfer-panel history-panel" aria-labelledby="history-title">
+    <div class="panel-heading history-heading"><div><h2 id="history-title">Historial</h2><p>Incluye traslados de origen o destino de la sede asignada.</p></div><label>Estado<select name="status" [(ngModel)]="estado" (ngModelChange)="load()"><option value="TODOS">Todos</option><option value="PENDIENTE">Pendiente</option><option value="EN_TRANSITO">En tránsito</option><option value="RECIBIDO_PARCIAL">Recibido parcialmente</option><option value="RECIBIDO">Recibido</option><option value="CANCELADO">Cancelado</option></select></label></div>
+    @if (loading()) { <p class="empty" role="status">Cargando traslados…</p> }
+    @else if (!transfers().length) { <p class="empty">No hay traslados para este filtro.</p> }
+    @else {
+      <div class="transfer-list">
+        @for (transfer of transfers(); track transfer.idTraslado) {
+          <article class="transfer-card">
+            <header class="card-heading"><div><strong>{{ transfer.codigo }}</strong><span>{{ transfer.sedeOrigen }} → {{ transfer.sedeDestino }}</span></div><span class="status" [attr.data-status]="transfer.estado">{{ transfer.estado.replace('_', ' ') }}</span></header>
+            <div class="transfer-meta"><span>Solicitado: {{ date(transfer.fechaSolicitud) }}</span><span>Responsable: {{ transfer.responsable }}</span><span>Referencia: {{ transfer.referencia }}</span></div>
+            @if (transfer.observaciones) { <p class="notes">{{ transfer.observaciones }}</p> }
+            <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Solicitada</th><th>Despachada</th><th>Recibida</th><th>En tránsito</th><th>Recepción ahora</th></tr></thead><tbody>
+              @for (detail of transfer.detalles; track detail.idProducto) {
+                <tr><td data-label="Producto"><strong>{{ detail.codigoProducto }}</strong><span>{{ detail.nombreProducto }} · {{ detail.unidadMedida || 'Unidad no definida' }}</span></td><td data-label="Solicitada">{{ detail.cantidadSolicitada }}</td><td data-label="Despachada">{{ detail.cantidadDespachada }}</td><td data-label="Recibida">{{ detail.cantidadRecibida }}</td><td data-label="En tránsito">{{ detail.cantidadEnTransito }}</td><td data-label="Recepción ahora">@if (canReceive(transfer) && detail.cantidadEnTransito > 0) { <input type="number" min="0" [max]="detail.cantidadEnTransito" [name]="'receive-' + transfer.idTraslado + '-' + detail.idProducto" [(ngModel)]="receiving[detail.idProducto]" [attr.aria-label]="'Cantidad recibida de ' + detail.nombreProducto" /> } @else { — }</td></tr>
+              }
+            </tbody></table></div>
+            @if (canCancel(transfer) && transfer.estado === 'EN_TRANSITO') { <label class="return-reference">Referencia de devolución física<input [name]="'return-' + transfer.idTraslado" [(ngModel)]="returnReference[transfer.idTraslado]" maxlength="100" placeholder="Documento que acredita el retorno" /></label> }
+            <footer class="card-actions">
+              @if (canDispatch(transfer)) { <button type="button" [disabled]="busy()" (click)="dispatch(transfer)">Confirmar despacho</button> }
+              @if (canReceive(transfer)) { <button type="button" [disabled]="busy()" (click)="receive(transfer)">Registrar recepción</button> }
+              @if (canCancel(transfer)) { <button type="button" class="secondary" [disabled]="busy()" (click)="cancel(transfer)">Cancelar</button> }
+            </footer>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</main>

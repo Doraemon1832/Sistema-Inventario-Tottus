@@ -1,0 +1,122 @@
+<main class="dashboard">
+  <header class="dashboard-header">
+    <div>
+      <p class="eyebrow">{{ roleTitle() }}</p>
+      <h1>Dashboard de inventario</h1>
+      <p class="dashboard-context">{{ siteName() }} <span aria-hidden="true">·</span> Actualizado {{ todayLabel }}</p>
+    </div>
+  </header>
+
+  @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="loading-state" role="status">Cargando indicadores de {{ siteName() }}…</p> }
+
+  @if (!loading()) {
+    @if (isPurchasingRole()) {
+    <section class="metrics-grid" aria-label="Indicadores de abastecimiento">
+      <article class="metric-card"><span class="metric-icon income" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h2l2 10h9l2-7H7"/><circle cx="10" cy="19" r="1"/><circle cx="17" cy="19" r="1"/></svg></span><span class="metric-label">Compras pendientes</span><strong>{{ pendingPurchases() }}</strong><small>Requieren seguimiento o recepción</small></article>
+      <article class="metric-card"><span class="metric-icon products" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/></svg></span><span class="metric-label">Compras recibidas</span><strong>{{ receivedPurchases() }}</strong><small>Historial de abastecimiento de la sede</small></article>
+      <article class="metric-card"><span class="metric-icon low" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></span><span class="metric-label">Proveedores activos</span><strong>{{ activeSuppliers() }}</strong><small>Disponibles para nuevas compras</small></article>
+    </section>
+    <section class="dashboard-lower-grid">
+      <article class="panel alerts-panel"><div class="panel-heading"><div><p class="eyebrow">ACTIVIDAD RECIENTE</p><h2>Compras de la sede</h2><p>Estados confirmados por el backend.</p></div><span class="panel-total">{{ purchases().length }} compras</span></div>
+        @if (purchases().length === 0) { <div class="chart-empty">No hay compras registradas en esta sede.</div> }
+        @else { <ul class="alert-list">@for (purchase of purchases().slice(0, 8); track purchase.idCompra) { <li><div class="alert-product"><strong>{{ purchase.referencia }} · {{ purchase.proveedor }}</strong><span>{{ formatDate(purchase.fecha) }} · {{ purchase.detalles.length }} productos</span></div><span class="stock-state" [class.exhausted]="purchase.estado === 'PENDIENTE'">{{ purchase.estado }}</span><a routerLink="/compras" class="alert-link" [attr.aria-label]="'Ver compra ' + purchase.referencia">Ver</a></li>}</ul> }
+      </article>
+    </section>
+    } @else {
+    <section class="metrics-grid" aria-label="Indicadores de inventario">
+      <article class="metric-card"><span class="metric-icon products" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg></span><span class="metric-label">Productos activos</span><strong>{{ activeProducts() }}</strong><small>En el catálogo de esta sede</small></article>
+      <article class="metric-card"><span class="metric-icon units" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10h18v10H3zM3 10l3-6h12l3 6M8 14h3m2 0h3M8 20v-3h8v3"/></svg></span><span class="metric-label">Unidades disponibles</span><strong>{{ summary().totalUnidades }}</strong><small>Existencias actuales</small></article>
+      <article class="metric-card"><span class="metric-icon low" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg></span><span class="metric-label">Stock bajo</span><strong>{{ summary().stockBajo }}</strong><small>Productos bajo el mínimo</small></article>
+      <article class="metric-card"><span class="metric-icon out" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></svg></span><span class="metric-label">Agotados</span><strong>{{ summary().sinStock }}</strong><small>Sin unidades disponibles</small></article>
+      <article class="metric-card"><span class="metric-icon income" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></span><span class="metric-label">Ingresos · {{ rangeDays() }} días</span><strong>{{ incomes().length }}</strong><small>Operaciones registradas</small></article>
+      <article class="metric-card"><span class="metric-icon expense" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14m6-6-6 6-6-6"/></svg></span><span class="metric-label">Egresos · {{ rangeDays() }} días</span><strong>{{ expenses().length }}</strong><small>Operaciones registradas</small></article>
+    </section>
+
+    <section class="charts-grid" aria-label="Análisis de existencias y movimientos">
+      <article class="panel stock-panel">
+        <div class="panel-heading"><div><p class="eyebrow">ESTADO ACTUAL</p><h2>Disponibilidad de productos</h2><p>Distribución por producto activo en {{ siteName() }}.</p></div><span class="panel-total">{{ totalClassified() }} productos</span></div>
+        @if (totalClassified() === 0) {
+          <div class="chart-empty">No hay productos activos para clasificar.</div>
+        } @else {
+          <div class="stock-chart-layout">
+            <figure class="donut-figure" aria-labelledby="stock-chart-title" aria-describedby="stock-chart-description">
+              <figcaption id="stock-chart-title" class="sr-only">Distribución de existencias por estado</figcaption>
+              <svg class="donut-chart" viewBox="0 0 100 100" role="img" aria-label="Gráfico circular de existencias">
+                <circle cx="50" cy="50" r="38" pathLength="100" class="donut-track"></circle>
+                @for (part of stockDistribution(); track part.key) {
+                  @if (part.count > 0) { <circle cx="50" cy="50" r="38" pathLength="100" class="donut-segment" [attr.stroke]="part.color" [attr.stroke-dasharray]="part.percent + ' ' + (100 - part.percent)" [attr.stroke-dashoffset]="part.offset"></circle> }
+                }
+                <text x="50" y="47" class="donut-total">{{ totalClassified() }}</text><text x="50" y="59" class="donut-caption">productos</text>
+              </svg>
+              <p id="stock-chart-description" class="sr-only">{{ stockDistribution()[0].count }} óptimos, {{ stockDistribution()[1].count }} con stock bajo y {{ stockDistribution()[2].count }} agotados.</p>
+            </figure>
+            <ul class="stock-legend">
+              @for (part of stockDistribution(); track part.key) {
+                <li><span class="legend-swatch" [style.background]="part.color"></span><span class="legend-name">{{ part.label }}</span><strong>{{ part.count }}</strong><span class="legend-percent">{{ percentLabel(part.percent) }}</span></li>
+              }
+            </ul>
+          </div>
+        }
+      </article>
+
+      <article class="panel movement-panel">
+        <div class="panel-heading movement-heading"><div><p class="eyebrow">ACTIVIDAD</p><h2>Operaciones por día</h2><p>Se cuentan operaciones, no unidades de producto.</p></div>
+          <div class="period-switch" role="group" aria-label="Periodo del gráfico">
+            <button type="button" [class.selected]="rangeDays() === 7" [attr.aria-pressed]="rangeDays() === 7" (click)="setRange(7)">7 días</button>
+            <button type="button" [class.selected]="rangeDays() === 30" [attr.aria-pressed]="rangeDays() === 30" (click)="setRange(30)">30 días</button>
+          </div>
+        </div>
+        @if (movementError()) { <p class="notice error" role="alert">{{ movementError() }}</p> }
+        @else if (trendLoading()) { <p class="loading-state" role="status">Cargando movimientos del periodo…</p> }
+        @else if (totalPeriodOperations() === 0) { <div class="chart-empty">{{ isSalesRole() ? 'No hay egresos registrados en este periodo.' : 'No hay ingresos ni egresos registrados en este periodo.' }}</div> }
+        @else {
+          <div class="chart-legend"><span *ngIf="!isSalesRole()"><i class="legend-swatch income-swatch"></i>Ingresos (operaciones)</span><span><i class="legend-swatch expense-swatch"></i>Egresos (operaciones)</span></div>
+          <div class="trend-scroll" [class.month-view]="rangeDays() === 30" tabindex="0" [attr.aria-label]="rangeDays() === 30 ? 'Gráfico de treinta días; desplaza dentro del gráfico para revisar los días' : 'Gráfico de operaciones de los últimos siete días'">
+            <div class="trend-chart">
+              <div class="axis-labels" aria-hidden="true"><span>{{ maxDailyOperations() }}</span><span>{{ (maxDailyOperations() / 2) | number:'1.0-0' }}</span><span>0</span></div>
+              @for (day of dailyOperations(); track day.key) {
+                <div class="day-column" [attr.aria-label]="day.label + ': ' + day.income + ' ingresos y ' + day.expense + ' egresos'" [title]="day.label + ' · ' + day.income + ' ingresos · ' + day.expense + ' egresos'">
+                  <div class="bar-pair"><span class="bar income-bar" [style.height]="barHeight(day.income)"></span><span class="bar expense-bar" [style.height]="barHeight(day.expense)"></span></div>
+                  <span class="day-label">{{ day.date }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </article>
+    </section>
+
+    @if (isWarehouseRole() || isSalesRole()) {
+      <section class="dashboard-lower-grid" aria-label="Actividad operativa reciente">
+        <article class="panel alerts-panel">
+          <div class="panel-heading"><div><p class="eyebrow">{{ isSalesRole() ? 'ACTIVIDAD COMERCIAL' : 'ACTIVIDAD DEL ALMACÉN' }}</p><h2>{{ isSalesRole() ? 'Egresos recientes' : 'Movimientos recientes' }}</h2><p>Operaciones confirmadas en {{ siteName() }}.</p></div><span class="panel-total">{{ recentOperations().length }} operaciones</span></div>
+          @if (recentOperations().length === 0) { <div class="chart-empty">{{ isSalesRole() ? 'No hay egresos recientes en esta sede.' : 'No hay movimientos recientes en esta sede.' }}</div> }
+          @else {
+            <ul class="alert-list">
+              @for (operation of recentOperations(); track operation.idOperacion) {
+                <li><div class="alert-product"><strong>{{ operation.referencia }} · {{ operation.subtipo || (operation.tipo === 'INGRESO' ? 'Ingreso general' : 'Egreso') }}</strong><span>{{ formatDate(operation.fecha) }} · {{ operation.detalles.length }} productos</span></div><span class="stock-state" [class.exhausted]="operation.tipo === 'EGRESO'">{{ operation.tipo === 'INGRESO' ? 'INGRESO' : 'EGRESO' }}</span><a [routerLink]="operation.tipo === 'INGRESO' ? '/ingresos' : '/egresos'" class="alert-link" [attr.aria-label]="'Ver movimiento ' + operation.referencia">Ver</a></li>
+              }
+            </ul>
+          }
+        </article>
+      </section>
+    }
+
+    <section class="dashboard-lower-grid">
+      <article class="panel alerts-panel">
+        <div class="panel-heading"><div><p class="eyebrow">SEGUIMIENTO</p><h2>Alertas de stock</h2><p>Productos que requieren atención.</p></div><span class="panel-total">{{ alerts().length }} alertas</span></div>
+        @if (alerts().length === 0) { <div class="chart-empty">No hay productos agotados ni bajo el mínimo.</div> }
+        @else {
+          <ul class="alert-list">
+            @for (item of alerts(); track item.idInventario) {
+              <li><div class="alert-product"><strong>{{ item.codigoProducto }} · {{ item.nombreProducto }}</strong><span>{{ item.nombreSede }} · mínimo {{ item.stockMinimo }}</span></div><span class="stock-state" [class.exhausted]="item.estadoStock === 'AGOTADO'">{{ item.estadoStock === 'AGOTADO' ? 'AGOTADO' : 'BAJO STOCK' }} · {{ item.stockActual }}</span><a routerLink="/inventario" class="alert-link" [attr.aria-label]="'Ver inventario para ' + item.nombreProducto">Ver</a></li>
+            }
+          </ul>
+        }
+      </article>
+
+    </section>
+    }
+  }
+</main>

@@ -1,0 +1,39 @@
+<main class="supply-page">
+  <header class="heading"><div><p class="eyebrow">Abastecimiento</p><h1>{{mode==='proveedores'?'Proveedores':'Compras'}}</h1><p>{{mode==='compras'?'Las compras no actualizan existencias hasta confirmar la recepción.':'Mantén los datos de proveedores y su estado activo.'}}</p></div></header>
+  <p class="notice error" *ngIf="error()" role="alert">{{error()}}</p><p class="notice success" *ngIf="message()" role="status">{{message()}}</p>
+  <ng-container *ngIf="mode==='proveedores';else purchasesView">
+    <section class="card" *ngIf="canManageSupply()"><h2>{{supplierId?'Editar proveedor':'Registrar proveedor'}}</h2><form class="supplier-form" (ngSubmit)="saveSupplier()"><label>RUC<input name="doc" [(ngModel)]="doc" maxlength="11" inputmode="numeric" pattern="[0-9]{11}" autocomplete="off" required aria-describedby="ruc-help"></label><small id="ruc-help" class="field-help">Ingresa los 11 dígitos del RUC, sin espacios ni guiones.</small><label>Razón social / Nombre de la empresa<input name="name" [(ngModel)]="name" maxlength="150" autocomplete="organization" required></label><label>Persona de contacto<input name="contact" [(ngModel)]="contact" maxlength="120" autocomplete="name"></label><label>Teléfono<input name="phone" [(ngModel)]="phone" maxlength="30" type="tel" autocomplete="tel"></label><label>Correo electrónico<input name="email" type="email" maxlength="150" [(ngModel)]="email" autocomplete="email"></label><div class="form-actions"><button class="primary" [disabled]="busy()">Guardar proveedor</button><button type="button" class="muted" *ngIf="supplierId" (click)="resetSupplier()">Cancelar edición</button></div></form></section>
+    <section class="card"><div class="list-head"><h2>Directorio de proveedores</h2><form (ngSubmit)="load()"><input name="query" [(ngModel)]="query" placeholder="Buscar por empresa o RUC"><button class="muted">Buscar</button></form></div><p *ngIf="busy()" class="empty" role="status">Cargando…</p><p *ngIf="!busy()&&!suppliers().length" class="empty">No hay proveedores para mostrar.</p><article class="row" *ngFor="let p of suppliers()"><div><strong>{{p.nombre}}</strong><span>RUC {{p.documento}} · {{p.contacto||'Sin contacto'}} · {{p.correo||'Sin correo'}}</span></div><div class="actions"><b [class.inactive]="!p.estado">{{p.estado?'Activo':'Inactivo'}}</b><ng-container *ngIf="canManageSupply()"><button class="link" type="button" (click)="editSupplier(p)">Editar</button><button class="link" type="button" *ngIf="p.estado" (click)="requestSupplierDeactivation(p)">Inactivar</button><button class="link" type="button" *ngIf="!p.estado" (click)="activateSupplier(p)">Activar</button></ng-container></div></article></section>
+  </ng-container>
+  <ng-template #purchasesView>
+    <section class="card" *ngIf="canManageSupply()"><h2>{{purchaseId?'Editar compra pendiente':'Registrar compra'}}</h2><form (ngSubmit)="savePurchase()"><div class="purchase-fields"><label>Referencia<input name="ref" [(ngModel)]="ref" maxlength="100" required></label><label>Proveedor<select name="supplier" [(ngModel)]="selectedSupplier" required><option [ngValue]="null">Seleccionar proveedor activo</option><option *ngFor="let p of suppliers()" [ngValue]="p.idProveedor" [disabled]="!p.estado">{{p.nombre}} {{p.estado?'':'(inactivo)'}}</option></select></label></div><h3>Productos y cantidades</h3><div class="detail" *ngFor="let line of lines;let i=index"><select name="product{{i}}" [(ngModel)]="line.idProducto" required [attr.aria-label]="'Producto de compra ' + (i + 1)"><option [ngValue]="null">Seleccionar producto</option><option *ngFor="let p of products()" [ngValue]="p.idProducto">{{p.codigo}} · {{p.nombre}}</option></select><input name="quantity{{i}}" type="number" min="1" step="1" [(ngModel)]="line.cantidad" required [attr.aria-label]="'Cantidad de producto de compra ' + (i + 1)"><button type="button" class="link" (click)="removeLine(i)">Quitar</button></div><button type="button" class="link" (click)="addLine()">+ Agregar producto</button><button class="primary" [disabled]="busy()">Guardar compra</button><button type="button" class="muted" *ngIf="purchaseId" (click)="resetPurchase()">Cancelar edición</button></form></section>
+    <section class="card"><div class="list-head"><h2>Compras registradas</h2><form (ngSubmit)="load()"><input name="query" [(ngModel)]="query" placeholder="Buscar referencia"><button class="muted">Buscar</button></form></div><p *ngIf="busy()" class="empty">Cargando…</p><p *ngIf="!busy()&&!purchases().length" class="empty">No hay compras para mostrar.</p><article class="row purchase" *ngFor="let c of purchases()"><div><strong>{{c.referencia}} · {{c.proveedor}}</strong><span>{{formatDate(c.fecha)}} · {{c.detalles.length}} productos</span><small *ngFor="let d of c.detalles">{{d.producto}} — {{d.cantidad}}</small></div><div class="actions"><b>{{c.estado}}</b><button class="link" *ngIf="canManageSupply() && c.estado==='PENDIENTE'" (click)="editPurchase(c)">Editar</button><button class="link" *ngIf="canManageSupply() && c.estado==='PENDIENTE'" (click)="receive(c)">Registrar recepción</button></div></article></section>
+  </ng-template>
+</main>
+<div class="modal-backdrop" *ngIf="supplierToDeactivate() as p" (click)="cancelSupplierDeactivation()">
+  <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="deactivate-supplier-title" tabindex="-1" (click)="$event.stopPropagation()">
+    <p class="eyebrow">Confirmación</p><h2 id="deactivate-supplier-title">Inactivar proveedor</h2>
+    <dl><div><dt>Razón social</dt><dd>{{p.nombre}}</dd></div><div><dt>RUC</dt><dd>{{p.documento}}</dd></div><div *ngIf="p.contacto"><dt>Persona de contacto</dt><dd>{{p.contacto}}</dd></div><div><dt>Estado actual</dt><dd>{{p.estado?'Activo':'Inactivo'}}</dd></div></dl>
+    <p>¿Deseas inactivar este proveedor? No podrá utilizarse para nuevas compras, pero se conservará su historial.</p>
+    <div class="dialog-actions"><button type="button" class="muted" (click)="cancelSupplierDeactivation()">Cancelar</button><button type="button" class="danger" [disabled]="busy()" (click)="confirmSupplierDeactivation()">Confirmar inactivación</button></div>
+  </section>
+</div>
+
+<app-confirmation-dialog *ngIf="pendingReceive() as purchase"
+  title="Confirmar recepción de compra"
+  message="¿Deseas registrar la recepción física de esta compra? El sistema creará el ingreso y actualizará las existencias una sola vez."
+  confirmText="Confirmar recepción" [busy]="busy()"
+  (confirmed)="confirmReceive()" (cancelled)="cancelReceive()">
+  <dl class="confirmation-summary">
+    <div><dt>Referencia de compra</dt><dd>{{ purchase.referencia }}</dd></div>
+    <div><dt>Proveedor</dt><dd>{{ purchase.proveedor }}</dd></div>
+    <div><dt>Sede</dt><dd>{{ siteName }}</dd></div>
+    <div><dt>Fecha de la compra</dt><dd>{{ formatDate(purchase.fecha) }}</dd></div>
+  </dl>
+  <ul class="confirmation-products">
+    <li *ngFor="let detail of purchase.detalles">
+      <div><strong>{{ detail.producto }}</strong><span>{{ detail.cantidad }} unidades</span></div>
+    </li>
+  </ul>
+  <p *ngIf="error()" class="confirmation-error" role="alert">{{ error() }}</p>
+</app-confirmation-dialog>

@@ -19,8 +19,14 @@ public class MovimientoResponseDTO {
     private String codigoProducto;
     private String nombreProducto;
     private String tipo;
+    private String subtipo;
     private Integer cantidad;
     private LocalDateTime fecha;
     private String referencia;
     private String usuario;
+    private Integer stockAnterior;
+    private Integer stockPosterior;
+    private Integer idTraslado;
+    private String codigoTraslado;
+    private String unidadMedida;
 }

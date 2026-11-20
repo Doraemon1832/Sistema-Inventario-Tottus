@@ -2,18 +2,18 @@
   <div class="login-backdrop-overlay"></div>
 
   <div class="login-container">
-    <!-- Left Logo Card -->
+
     <div class="logo-card">
       <div class="tottus-dots-grid">
-        <!-- Row 1 -->
+
         <span class="dot dot-lime"></span>
         <span class="dot dot-midgreen"></span>
         <span class="dot dot-lime"></span>
-        <!-- Row 2 -->
+
         <span class="dot dot-midgreen"></span>
         <span class="dot dot-darkgreen"></span>
         <span class="dot dot-midgreen"></span>
-        <!-- Row 3 -->
+
         <span class="dot dot-lime"></span>
         <span class="dot dot-midgreen"></span>
         <span class="dot dot-lime"></span>
@@ -21,7 +21,7 @@
       <h1 class="tottus-brand-text">TOTTUS</h1>
     </div>
 
-    <!-- Right Login Card -->
+
     <div class="form-card">
       <div class="form-header">
         <h2 class="form-title">Iniciar Sesión</h2>
@@ -38,7 +38,7 @@
       }
 
       <form (ngSubmit)="onSubmit()" class="login-form">
-        <!-- Usuario Field -->
+
         <div class="field-group">
           <label class="field-label" for="username-input">USUARIO</label>
           <div class="input-wrapper">
@@ -53,14 +53,14 @@
               [ngModel]="usuario()"
               (ngModelChange)="usuario.set($event)"
               name="usuario"
-              placeholder="ej. gerencia_admin"
+              placeholder="ej. admin.megaplaza"
               required
               autocomplete="username"
             />
           </div>
         </div>
 
-        <!-- Contraseña Field -->
+
         <div class="field-group">
           <label class="field-label" for="password-input">CONTRASEÑA</label>
           <div class="input-wrapper">
@@ -101,7 +101,7 @@
           </div>
         </div>
 
-        <!-- Submit Button -->
+
         <button type="submit" class="submit-btn" [disabled]="isLoading()">
           @if (isLoading()) {
             <span class="spinner"></span>
@@ -113,7 +113,7 @@
         </button>
       </form>
 
-      <!-- Footer -->
+
       <footer class="form-footer">
         <p>© 2026 Tottus — Todos los derechos reservados</p>
       </footer>
