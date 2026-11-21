@@ -39,9 +39,7 @@
   }
 }
 
-/* =========================================
-   Left Logo Card (Liquid Glassmorphism)
-   ========================================= */
+
 .logo-card {
   position: relative;
   width: 330px;
@@ -68,7 +66,7 @@
   animation: fadeIn 0.4s ease-out;
   overflow: hidden;
 
-  /* Diagonal light shine reflection across the glass */
+
   &::before {
     content: '';
     position: absolute;
@@ -151,9 +149,7 @@
   }
 }
 
-/* =========================================
-   Right Form Card (Liquid Glassmorphism)
-   ========================================= */
+
 .form-card {
   position: relative;
   background: linear-gradient(
@@ -176,7 +172,7 @@
   animation: fadeIn 0.4s ease-out;
   overflow: hidden;
 
-  /* Diagonal light shine reflection across the glass */
+
   &::before {
     content: '';
     position: absolute;
@@ -424,4 +420,21 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+:host-context(html[data-theme='dark']) .form-card .login-form .field-group .input-wrapper {
+  background: var(--input-bg);
+  border-color: var(--border-strong);
+}
+:host-context(html[data-theme='dark']) .form-card .login-form .field-group .input-wrapper:focus-within {
+  background: var(--surface-soft);
+  border-color: var(--accent);
+}
+:host-context(html[data-theme='dark']) .form-card .login-form .field-group .input-wrapper .form-input,
+:host-context(html[data-theme='dark']) .form-card .login-form .field-group .input-wrapper .input-icon,
+:host-context(html[data-theme='dark']) .form-card .login-form .field-group .input-wrapper .toggle-visibility-btn {
+  color: var(--text-primary);
+}
+:host-context(html[data-theme='dark']) .form-card .login-form .field-group .input-wrapper .form-input::placeholder {
+  color: var(--text-muted);
 }

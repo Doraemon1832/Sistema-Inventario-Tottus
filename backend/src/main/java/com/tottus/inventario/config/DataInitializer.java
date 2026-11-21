@@ -5,18 +5,25 @@ import com.tottus.inventario.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Profile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Component
+@Profile("local")
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
+
+    @Value("${app.demo-users.enabled:false}")
+    private boolean demoUsersEnabled;
 
     private final RolRepository rolRepository;
     private final SedeRepository sedeRepository;
@@ -44,8 +51,17 @@ public class DataInitializer implements CommandLineRunner {
         Sede sedeMiraflores = getOrCreateSede("Tottus Miraflores", "Av. 28 de Julio 1005, Miraflores, Lima");
 
         // 3. Usuarios
-        Usuario adminUser = getOrCreateUsuario("gerencia_admin", "admin123", rolAdmin, sedeMegaPlaza);
-        getOrCreateUsuario("jefe_almacen", "tottus2026", rolJefe, sedeMegaPlaza);
+        Usuario adminUser = getOrCreateUsuario("admin.megaplaza", "ADMIN_INITIAL_PASSWORD", rolAdmin, sedeMegaPlaza);
+        getOrCreateUsuario("jinv.megaplaza", "INVENTORY_MANAGER_INITIAL_PASSWORD", rolJefe, sedeMegaPlaza);
+        if (demoUsersEnabled) {
+            Rol rolVendedor = getOrCreateRol("VENDEDOR");
+            Rol rolCompras = getOrCreateRol("ENCARGADO_COMPRAS");
+            getOrCreateUsuario("demo_admin", "DEMO_ADMIN_PASSWORD", rolAdmin, sedeMegaPlaza);
+            getOrCreateUsuario("demo_jefe", "DEMO_JEFE_PASSWORD", rolJefe, sedeMegaPlaza);
+            getOrCreateUsuario("demo_operador", "DEMO_OPERADOR_PASSWORD", rolOperador, sedeMegaPlaza);
+            getOrCreateUsuario("demo_vendedor", "DEMO_VENDEDOR_PASSWORD", rolVendedor, sedeMegaPlaza);
+            getOrCreateUsuario("demo_compras", "DEMO_COMPRAS_PASSWORD", rolCompras, sedeMegaPlaza);
+        }
 
         // 4. Categorías
         Categoria catAbarrotes = getOrCreateCategoria("Abarrotes y Despensa");
@@ -100,7 +116,7 @@ public class DataInitializer implements CommandLineRunner {
                             .usuario(adminUser)
                             .tipo("ENTRADA")
                             .cantidad(pd.stockInicial)
-                            .fecha(LocalDateTime.now().minusHours(2))
+                            .fecha(LocalDateTime.now(ZoneId.of("America/Lima")).minusHours(2))
                             .referencia("Carga inicial de inventario")
                             .build();
                     movimientoRepository.save(mov);
@@ -128,6 +144,14 @@ public class DataInitializer implements CommandLineRunner {
         });
     }
 
+    private String requiredDemoPassword(String environmentVariable) {
+        String password = System.getenv(environmentVariable);
+        if (password == null || password.isBlank()) {
+            throw new IllegalStateException(environmentVariable + " is required when app.demo-users.enabled=true");
+        }
+        return password;
+    }
+
     private Sede getOrCreateSede(String nombre, String direccion) {
         return sedeRepository.findByNombre(nombre).orElseGet(() -> {
             Sede s = Sede.builder().nombre(nombre).direccion(direccion).estado(true).build();
@@ -135,14 +159,16 @@ public class DataInitializer implements CommandLineRunner {
         });
     }
 
-    private Usuario getOrCreateUsuario(String username, String rawPassword, Rol rol, Sede sede) {
+    private Usuario getOrCreateUsuario(String username, String passwordEnvironmentVariable, Rol rol, Sede sede) {
         return usuarioRepository.findByUsuario(username).orElseGet(() -> {
+            String rawPassword = requiredDemoPassword(passwordEnvironmentVariable);
             Usuario u = Usuario.builder()
                     .usuario(username)
                     .passwordHash(passwordEncoder.encode(rawPassword))
                     .rol(rol)
                     .sede(sede)
                     .estado(true)
+                    .cambioPasswordRequerido(true)
                     .build();
             return usuarioRepository.save(u);
         });

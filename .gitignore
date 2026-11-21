@@ -3,3 +3,8 @@ dist/
 .angular/
 .vscode/
 .env
+.local-demo/
+/backend/target/
+
+# Sesiones de autenticación de Playwright
+playwright/.auth/

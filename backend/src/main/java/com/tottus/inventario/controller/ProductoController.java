@@ -10,7 +10,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -20,6 +21,7 @@ public class ProductoController {
     private final ProductoService productoService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','OPERADOR_ALMACEN','ENCARGADO_COMPRAS')")
     public ResponseEntity<List<Producto>> listar(
             @RequestParam(required = false) Integer categoriaId,
             @RequestParam(required = false) String query
@@ -28,48 +30,37 @@ public class ProductoController {
     }
 
     @GetMapping("/categorias")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','OPERADOR_ALMACEN')")
     public ResponseEntity<List<Categoria>> categorias() {
         return ResponseEntity.ok(productoService.listarCategorias());
     }
 
     @PostMapping
-    public ResponseEntity<?> crear(@RequestBody ProductoRequestDTO dto, Authentication authentication) {
-        try {
-            String username = authentication != null ? authentication.getName() : "gerencia_admin";
-            Producto saved = productoService.guardarProducto(dto, username);
-            return ResponseEntity.ok(saved);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','OPERADOR_ALMACEN')")
+    public ResponseEntity<?> crear(@Valid @RequestBody ProductoRequestDTO dto, Authentication authentication) {
+        Producto saved = productoService.guardarProducto(dto, authentication.getName());
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','OPERADOR_ALMACEN')")
     public ResponseEntity<?> actualizar(
             @PathVariable Integer id,
-            @RequestBody ProductoRequestDTO dto,
+            @Valid @RequestBody ProductoRequestDTO dto,
             Authentication authentication
     ) {
-        try {
-            String username = authentication != null ? authentication.getName() : "gerencia_admin";
-            Producto updated = productoService.actualizarProducto(id, dto, username);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        Producto updated = productoService.actualizarProducto(id, dto, authentication.getName());
+        return ResponseEntity.ok(updated);
     }
 
     @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','OPERADOR_ALMACEN')")
     public ResponseEntity<?> cambiarEstado(
             @PathVariable Integer id,
             @RequestParam boolean activo,
             Authentication authentication
     ) {
-        try {
-            String username = authentication != null ? authentication.getName() : "gerencia_admin";
-            Producto updated = productoService.cambiarEstadoProducto(id, activo, username);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        Producto updated = productoService.cambiarEstadoProducto(id, activo, authentication.getName());
+        return ResponseEntity.ok(updated);
     }
 }

@@ -1,66 +1,144 @@
-<div class="app-layout">
-  <!-- Header Bar -->
+<div class="app-layout" [class.nav-collapsed]="navCollapsed()">
   <header class="top-navbar">
-    <div class="navbar-brand">
-      <div class="brand-dots">
-        <span class="dot dot-lime"></span>
-        <span class="dot dot-midgreen"></span>
-        <span class="dot dot-lime"></span>
-        <span class="dot dot-midgreen"></span>
-        <span class="dot dot-darkgreen"></span>
-        <span class="dot dot-midgreen"></span>
-        <span class="dot dot-lime"></span>
-        <span class="dot dot-midgreen"></span>
-        <span class="dot dot-lime"></span>
-      </div>
-      <div class="brand-text">
-        <span class="brand-name">TOTTUS</span>
-        <span class="brand-badge">INVENTARIO</span>
-      </div>
-    </div>
-
-    <!-- Center/Right controls -->
+    <button class="mobile-menu-button" type="button" (click)="toggleMobileMenu()"
+      [attr.aria-expanded]="mobileMenuOpen()" aria-controls="primary-navigation" aria-label="Abrir menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+    <a class="navbar-brand" [routerLink]="brandRoute()">
+      <span class="brand-dots" aria-hidden="true">
+        <span class="dot dot-lime"></span><span class="dot dot-midgreen"></span><span class="dot dot-lime"></span>
+        <span class="dot dot-midgreen"></span><span class="dot dot-darkgreen"></span><span class="dot dot-midgreen"></span>
+        <span class="dot dot-lime"></span><span class="dot dot-midgreen"></span><span class="dot dot-lime"></span>
+      </span>
+      <span class="brand-text"><span class="brand-name">TOTTUS</span><span class="brand-badge">INVENTARIO</span></span>
+    </a>
     <div class="navbar-actions">
-      <!-- Sede selector -->
-      <div class="sede-selector-wrapper">
-        <svg class="sede-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-          <circle cx="12" cy="10" r="3"></circle>
-        </svg>
-        <span class="sede-label">Sede:</span>
-        <select
-          class="sede-select"
-          [ngModel]="activeSedeId()"
-          (ngModelChange)="onSedeChange($event)"
-        >
-          @for (sede of sedes(); track sede.idSede) {
-            <option [value]="sede.idSede">{{ sede.nombre }}</option>
-          }
-        </select>
-      </div>
-
-      <!-- User Profile & Logout -->
-      <div class="user-profile-badge">
-        <div class="user-avatar">
-          {{ currentUser()?.usuario?.charAt(0)?.toUpperCase() || 'U' }}
-        </div>
-        <div class="user-info">
-          <span class="user-name">{{ currentUser()?.usuario || 'gerencia_admin' }}</span>
-          <span class="user-role">{{ currentUser()?.rol || 'ADMIN' }}</span>
-        </div>
-        <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
+      <button type="button" class="theme-toggle" (click)="themeService.toggle()"
+        [attr.aria-label]="themeService.theme() === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'"
+        [title]="themeService.theme() === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'">
+        @if (themeService.theme() === 'dark') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
           </svg>
-        </button>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.7 8.7 0 1 0 20.5 15.2Z"></path>
+          </svg>
+        }
+      </button>
+      <div class="sede-selector-wrapper">
+        <svg class="sede-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        @if (isGlobalAdmin) {
+          <label class="sede-label" for="active-sede-select">Sede:</label>
+          <select id="active-sede-select" class="sede-select" aria-label="Sede activa"
+            [ngModel]="activeSedeId()" (ngModelChange)="onSedeChange($event)">
+            @for (sede of sedes(); track sede.idSede) { <option [value]="sede.idSede">{{ sede.nombre }}</option> }
+          </select>
+        } @else {
+          <span class="sede-label">Sede:</span>
+          <span class="sede-value" aria-label="Sede asignada">{{ activeSedeName }}</span>
+        }
       </div>
     </div>
   </header>
 
-  <!-- Main Body Content -->
-  <main class="layout-content">
-    <router-outlet></router-outlet>
-  </main>
+  <div class="workspace-shell">
+    @if (mobileMenuOpen()) {
+      <button class="drawer-scrim" type="button" aria-label="Cerrar menú" (click)="closeMobileMenu()"></button>
+    }
+    <aside id="primary-navigation" class="side-nav" [class.collapsed]="navCollapsed()" [class.open]="mobileMenuOpen()">
+      <div class="side-nav-heading">
+        <span class="nav-caption">NAVEGACIÓN</span>
+        <button class="collapse-button" type="button" (click)="toggleNav()"
+          [attr.aria-label]="navCollapsed() ? 'Expandir menú' : 'Contraer menú'"
+          [attr.aria-expanded]="!navCollapsed()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            @if (navCollapsed()) { <path d="m9 18 6-6-6-6"></path> }
+            @else { <path d="m15 18-6-6 6-6"></path> }
+          </svg>
+        </button>
+      </div>
+      <nav class="nav-groups" aria-label="Módulos del sistema">
+        @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','OPERADOR_ALMACEN','VENDEDOR','ENCARGADO_COMPRAS')) {
+          <section class="nav-group">
+            <h2>INICIO</h2>
+            <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMobileMenu()" title="Dashboard">
+              <span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-link-text">Dashboard</span>
+            </a>
+          </section>
+        }
+        @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','OPERADOR_ALMACEN','VENDEDOR')) {
+          <section class="nav-group">
+            <h2>INVENTARIO</h2>
+            <a routerLink="/inventario" routerLinkActive="active" (click)="closeMobileMenu()" title="Catálogo e inventario">
+              <span class="nav-icon" aria-hidden="true">▦</span><span class="nav-link-text">Catálogo e inventario</span>
+            </a>
+          </section>
+        }
+        @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','OPERADOR_ALMACEN','ENCARGADO_COMPRAS','VENDEDOR')) {
+          <section class="nav-group">
+            <h2>OPERACIONES</h2>
+            @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','ENCARGADO_COMPRAS')) {
+              <a routerLink="/compras" routerLinkActive="active" (click)="closeMobileMenu()" title="Compras">
+                <span class="nav-icon" aria-hidden="true">▤</span><span class="nav-link-text">Compras</span>
+              </a>
+            }
+            @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','OPERADOR_ALMACEN')) {
+              <a routerLink="/ingresos" routerLinkActive="active" (click)="closeMobileMenu()" title="Ingresos">
+                <span class="nav-icon" aria-hidden="true">↓</span><span class="nav-link-text">Ingresos</span>
+              </a>
+            }
+            @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','VENDEDOR')) {
+              <a routerLink="/egresos" routerLinkActive="active" (click)="closeMobileMenu()" title="Egresos">
+                <span class="nav-icon" aria-hidden="true">↑</span><span class="nav-link-text">Egresos</span>
+              </a>
+            }
+            @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','OPERADOR_ALMACEN')) {
+              <a routerLink="/traslados" routerLinkActive="active" (click)="closeMobileMenu()" title="Traslados">
+                <span class="nav-icon" aria-hidden="true">⇄</span><span class="nav-link-text">Traslados</span>
+              </a>
+            }
+          </section>
+        }
+        @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO','ENCARGADO_COMPRAS')) {
+          <section class="nav-group">
+            <h2>ADMINISTRACIÓN / ABASTECIMIENTO</h2>
+            <a routerLink="/proveedores" routerLinkActive="active" (click)="closeMobileMenu()" title="Proveedores">
+              <span class="nav-icon" aria-hidden="true">♧</span><span class="nav-link-text">Proveedores</span>
+            </a>
+          </section>
+        }
+        @if (authService.hasAnyRole('ADMINISTRADOR','JEFE_INVENTARIO')) {
+          <section class="nav-group">
+            <h2>SEGUIMIENTO</h2>
+            <a routerLink="/kardex" routerLinkActive="active" (click)="closeMobileMenu()" title="Kardex de inventario">
+              <span class="nav-icon" aria-hidden="true">≋</span><span class="nav-link-text">Kardex</span>
+            </a>
+          </section>
+        }
+        @if (authService.hasAnyRole('ADMINISTRADOR')) {
+          <section class="nav-group">
+            <h2>ADMINISTRACIÃ“N</h2>
+            <a routerLink="/usuarios" routerLinkActive="active" (click)="closeMobileMenu()" title="Usuarios y permisos">
+              <span class="nav-icon" aria-hidden="true">U</span><span class="nav-link-text">Usuarios</span>
+            </a>
+          </section>
+        }
+      </nav>
+      <div class="side-account">
+        <div class="user-avatar" aria-hidden="true">{{ currentUser()?.usuario?.charAt(0)?.toUpperCase() || 'U' }}</div>
+        <div class="user-info"><span class="user-name">{{ currentUser()?.usuario || 'Usuario' }}</span><span class="user-role">{{ currentUser()?.rol || 'SIN ROL' }}</span></div>
+        <button class="logout-btn" type="button" (click)="logout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </aside>
+    <main class="layout-content"><router-outlet></router-outlet></main>
+  </div>
 </div>

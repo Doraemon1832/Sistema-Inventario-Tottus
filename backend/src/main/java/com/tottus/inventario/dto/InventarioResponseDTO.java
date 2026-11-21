@@ -18,6 +18,7 @@ public class InventarioResponseDTO {
     private Integer idProducto;
     private String codigoProducto;
     private String nombreProducto;
+    private String unidadMedida;
     private String categoria;
     private Integer idCategoria;
     private BigDecimal precio;

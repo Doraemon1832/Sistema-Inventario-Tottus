@@ -12,15 +12,15 @@ import { AuthService } from '../../services/auth.service';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
-  usuario = signal('gerencia_admin');
-  password = signal('admin123');
+  usuario = signal('');
+  password = signal('');
   showPassword = signal(false);
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
 
   constructor(private authService: AuthService, private router: Router) {
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/inventario']);
+      this.router.navigate([this.authService.currentUser()?.cambioPasswordRequerido ? '/cambiar-password' : '/dashboard']);
     }
   }
 
@@ -38,9 +38,9 @@ export class LoginComponent {
     this.errorMessage.set(null);
 
     this.authService.login({ usuario: this.usuario(), password: this.password() }).subscribe({
-      next: () => {
+      next: (user) => {
         this.isLoading.set(false);
-        this.router.navigate(['/inventario']);
+        this.router.navigate([user.cambioPasswordRequerido ? '/cambiar-password' : this.landingRoute(user.rol)]);
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -49,5 +49,16 @@ export class LoginComponent {
         );
       }
     });
+  }
+
+  private landingRoute(role: string): string {
+    switch (role.toUpperCase()) {
+      case 'ENCARGADO_COMPRAS': return '/dashboard';
+      case 'ADMINISTRADOR':
+      case 'JEFE_INVENTARIO':
+      case 'OPERADOR_ALMACEN':
+      case 'VENDEDOR': return '/dashboard';
+      default: return '/inventario';
+    }
   }
 }

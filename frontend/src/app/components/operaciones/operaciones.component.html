@@ -1,0 +1,200 @@
+<main class="operations-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Inventario · {{ tipo() }}</p>
+      <h1>{{ titulo() }}</h1>
+      <p>Registra movimientos y consulta su historial por fecha, referencia y responsable.</p>
+    </div>
+  </header>
+
+  <nav class="operation-tabs" role="tablist" [attr.aria-label]="'Vistas de ' + tipo()" (keydown)="navegarPestanas($event)">
+    @if (canRegister()) {
+      <button type="button" role="tab" id="register-tab" aria-controls="register-panel"
+        [attr.aria-selected]="activeTab() === 'registro'" [class.active]="activeTab() === 'registro'"
+        (click)="seleccionarTab('registro')">Registrar {{ tipo() === 'ingresos' ? 'ingreso' : 'egreso' }}</button>
+    }
+    <button type="button" role="tab" id="history-tab" aria-controls="history-panel"
+      [attr.aria-selected]="activeTab() === 'historial'" [class.active]="activeTab() === 'historial'"
+      (click)="seleccionarTab('historial')">Historial de {{ tipo() }}</button>
+  </nav>
+
+  @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+  @if (success()) { <p class="notice success" role="status">{{ success() }}</p> }
+
+  @if (activeTab() === 'registro' && (canRegister() || editingId)) {
+    <section class="operation-form" id="register-panel" role="tabpanel" aria-labelledby="register-tab">
+      <div class="section-heading"><div><p class="eyebrow">{{ editingId ? 'EDICIÓN AUDITABLE' : 'NUEVO MOVIMIENTO' }}</p><h2>{{ editingId ? 'Corregir ingreso' : 'Registrar ' + (tipo() === 'ingresos' ? 'ingreso' : 'egreso') }}</h2></div></div>
+      <div class="operation-context" aria-label="Datos que se registrarán automáticamente">
+        <span><strong>Sede:</strong> {{ sedeName }}</span>
+        <span><strong>Responsable:</strong> {{ responsibleName }}</span>
+        <span><strong>Fecha y hora:</strong> al confirmar</span>
+      </div>
+      <form (ngSubmit)="guardar()">
+        <label class="reference-field">Referencia documental
+          <input name="referencia" [(ngModel)]="referencia" maxlength="100" required
+            placeholder="Guía, comprobante, orden o motivo" autocomplete="off" aria-describedby="operation-reference-help" />
+          <small id="operation-reference-help">Registra una guía, comprobante u orden. Si no hay documento, describe el motivo de la operación. Se conserva en el campo histórico de referencia.</small>
+        </label>
+
+        @if (tipo() === 'ingresos') {
+          <label class="operation-type-field">Tipo de ingreso
+            <select name="income-subtype" [ngModel]="subtipo()" (ngModelChange)="cambiarSubtipo($event)" required>
+              <option [ngValue]="null" disabled>Selecciona tipo de ingreso</option>
+              <option value="DEVOLUCION_CLIENTE">Devolución de cliente</option>
+              <option value="PRODUCCION">Entrada por producción</option>
+              <option value="BONIFICACION_PROVEEDOR">Bonificación de proveedor</option>
+              @if (editingId && subtipo() === 'INGRESO_GENERAL') { <option value="INGRESO_GENERAL">Ingreso general (registro histórico)</option> }
+            </select>
+          </label>
+          <p class="income-type-note">Las compras se reciben desde Compras y las transferencias desde Traslados; aquí se registran los demás ingresos manuales.</p>
+          @if (editingId && subtipo() === 'COMPRA') { <p class="legacy-subtype-note">Recepción histórica vinculada a compra; se conserva su origen y no se edita desde Ingresos.</p> }
+          @if (editingId && !subtipo()) { <p class="legacy-subtype-note">Tipo histórico: sin clasificar.</p> }
+        } @else {
+          <label class="operation-type-field">Tipo de egreso
+            <select name="expense-subtype" [ngModel]="subtipo()" (ngModelChange)="cambiarSubtipo($event)" required>
+              <option [ngValue]="null" disabled>Selecciona tipo de egreso</option>
+              @for (kind of allowedSubtypes; track kind) {
+                <option [value]="kind">{{ subtypeOptionLabel(kind) }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        @if (needsSupplier()) {
+          <label>Proveedor relacionado
+            <select name="operation-supplier" [(ngModel)]="idProveedor" required>
+              <option [ngValue]="null" disabled>Selecciona un proveedor</option>
+              @for (supplier of proveedores(); track supplier.idProveedor) { <option [ngValue]="supplier.idProveedor">{{ supplier.nombre }} · {{ supplier.documento }}</option> }
+            </select>
+          </label>
+        }
+        @if (needsBeneficiary()) {
+          <label>Beneficiario de la donación<input name="beneficiario" [(ngModel)]="beneficiario" maxlength="150" required /></label>
+        }
+        @if (needsReason()) {
+          <label>{{ subtipo() === 'CONSUMO_INTERNO' ? 'Área o destino del consumo' : 'Motivo de la operación' }}<input name="motivo" [(ngModel)]="motivo" maxlength="150" required /></label>
+        }
+        <label>Observaciones (opcional)<textarea name="observaciones" [(ngModel)]="observaciones" maxlength="2000" rows="3"></textarea></label>
+
+        <div class="details-title"><div><h3>Productos y cantidades</h3><p>Busca por SKU o nombre. Cada producto puede agregarse una sola vez.</p></div>
+          <button type="button" class="link" (click)="agregarDetalle()">+ Agregar producto</button></div>
+
+        <div class="operation-lines">
+          @for (line of detalles; track $index; let lineIndex = $index) {
+            <div class="detail-row">
+              <div class="product-picker">
+                <label [for]="'operation-product-' + lineIndex">Producto</label>
+                <div class="autocomplete-wrap">
+                  <input [id]="'operation-product-' + lineIndex" [name]="'producto-' + lineIndex"
+                    [ngModel]="line.busqueda" (ngModelChange)="actualizarBusqueda(lineIndex, $event)"
+                    (focus)="abrirAutocompletado(lineIndex)" (blur)="cerrarAutocompletado(lineIndex)"
+                    (keydown)="navegarAutocompletado($event, lineIndex)"
+                    role="combobox" aria-autocomplete="list" [attr.aria-expanded]="activeAutocomplete() === lineIndex"
+                    [attr.aria-controls]="'product-options-' + lineIndex" [attr.aria-activedescendant]="activeOptionId(lineIndex)"
+                    required placeholder="Buscar por SKU o nombre" autocomplete="off" />
+                  @if (activeAutocomplete() === lineIndex && filteredProducts(lineIndex).length) {
+                    <ul class="product-options" role="listbox" [id]="'product-options-' + lineIndex">
+                      @for (product of filteredProducts(lineIndex); track product.idProducto) {
+                          <li role="option" [id]="optionId(lineIndex, product.idProducto)"
+                            [attr.aria-selected]="line.idProducto === product.idProducto"
+                            [class.highlighted]="activeProductId() === product.idProducto"
+                            (mousedown)="$event.preventDefault()" (click)="seleccionarProducto(lineIndex, product.idProducto)">
+                            <strong>{{ product.codigo }} · {{ product.nombre }}</strong>
+                            <span>{{ product.categoria || 'Categoría no disponible' }}@if (product.stockActual !== undefined) { · Stock {{ product.stockActual }} }</span>
+                          </li>
+                      }
+                    </ul>
+                  } @else if (activeAutocomplete() === lineIndex && line.busqueda && !line.idProducto) {
+                    <p class="no-product-options" role="status">No hay coincidencias. Busca por nombre o SKU.</p>
+                  }
+                </div>
+                @if (productFor(line.idProducto); as selected) {
+                <span class="selected-product">{{ selected.codigo }} · {{ selected.categoria || 'Categoría no disponible' }} · {{ selected.unidadMedida || 'Unidad no definida' }}</span>
+                  @if (currentStock(line) !== null) {
+                    <span class="stock-projection"><strong>Stock actual:</strong> {{ currentStock(line) }} · <strong>Proyección:</strong> {{ projectedStock(line) }} unidades</span>
+                  }
+                }
+              </div>
+              <label class="quantity-field">Cantidad
+                <input [name]="'cantidad-' + lineIndex" type="number" min="1" step="1" [(ngModel)]="line.cantidad" required />
+              </label>
+              <button type="button" class="remove" (click)="quitarDetalle($index)" [disabled]="detalles.length === 1"
+                [attr.aria-label]="'Quitar producto ' + (lineIndex + 1)">×</button>
+            </div>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button class="primary" type="submit" [disabled]="busy() || (tipo() === 'ingresos' && subtipo() === 'COMPRA')">{{ editingId ? 'Revisar corrección' : 'Registrar ' + (tipo() === 'ingresos' ? 'ingreso' : 'egreso') }}</button>
+          @if (editingId) { <button type="button" class="secondary" (click)="cancelarEdicion()">Cancelar edición</button> }
+        </div>
+      </form>
+    </section>
+  }
+
+  @if (activeTab() === 'historial') {
+    <section class="list-card" id="history-panel" role="tabpanel" aria-labelledby="history-tab">
+      <div class="list-heading"><div><p class="eyebrow">CONSULTA</p><h2>Historial de {{ tipo() }}</h2><span>{{ operaciones().length }} resultados</span></div>
+        <form class="search" (ngSubmit)="cargar()">
+          <label class="query-field">Referencia o número<input name="query" [(ngModel)]="query" placeholder="Buscar en este historial" /></label>
+          <label>Desde<input name="desde" type="date" [(ngModel)]="desde" /></label>
+          <label>Hasta<input name="hasta" type="date" [(ngModel)]="hasta" /></label>
+          <button type="submit" class="secondary" [disabled]="busy()">Filtrar</button>
+        </form>
+      </div>
+      @if (busy()) { <p class="empty" role="status">Cargando operaciones…</p> }
+      @else if (operaciones().length === 0) { <p class="empty">Todavía no hay operaciones para esta búsqueda.</p> }
+      @else {
+        <div class="operation-history">
+          @for (op of operaciones(); track op.idOperacion) {
+            <article class="operation">
+              <div class="operation-head"><div><strong>#{{ op.idOperacion }} · {{ op.referencia }}</strong>
+                <span>{{ formatDate(op.fecha) }} · {{ op.usuario }} · {{ op.nombreSede }} · {{ op.subtipo || 'Sin clasificar (histórico)' }} · Estado: {{ op.estado || 'CONFIRMADA' }}</span></div>
+                @if (canEdit() && tipo() === 'ingresos' && op.subtipo !== 'COMPRA') { <button type="button" class="link" (click)="editar(op)">Editar ingreso</button> }
+                @if (canReviewSensitiveEgress() && op.estado === 'PENDIENTE') {
+                  <div class="review-actions"><button type="button" class="secondary" (click)="approveEgress(op)" [disabled]="busy()">Aprobar egreso</button><button type="button" class="link" (click)="beginReject(op)">Rechazar</button></div>
+                }
+              </div>
+              @if (op.estado === 'RECHAZADA' && op.motivoRevision) { <p class="review-note">Rechazo: {{ op.motivoRevision }}</p> }
+              @if (rejectingId() === op.idOperacion) {
+                <form class="reject-form" (ngSubmit)="rejectEgress(op)"><label>Justificación del rechazo<textarea name="reject-reason" [(ngModel)]="rejectionReason" maxlength="255" required></textarea></label><button type="submit" class="secondary" [disabled]="busy() || !rejectionReason.trim()">Confirmar rechazo</button><button type="button" class="link" (click)="cancelReject()">Cancelar</button></form>
+              }
+              <div class="line" *ngFor="let detail of op.detalles"><span>{{ detail.codigoProducto }} · {{ detail.nombreProducto }}</span><b>{{ detail.cantidad }} {{ detail.unidadMedida || 'unidad no definida' }}</b></div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+  @if (confirmationOpen()) {
+    <app-confirmation-dialog [title]="confirmationTitle"
+      [message]="editingId ? '¿Deseas confirmar la corrección auditable de este ingreso?' : (tipo() === 'ingresos' ? '¿Deseas confirmar este ingreso de inventario?' : '¿Deseas confirmar este egreso de inventario?')"
+      [confirmText]="confirmationLabel" [busy]="busy()"
+      (confirmed)="confirmarOperacion()" (cancelled)="cancelarConfirmacion()">
+      <dl class="confirmation-summary">
+        <div><dt>Sede</dt><dd>{{ sedeName }}</dd></div>
+        <div><dt>Responsable</dt><dd>{{ responsibleName }}</dd></div>
+        <div><dt>Fecha y hora</dt><dd>Se asignará al confirmar en el servidor</dd></div>
+        <div><dt>Referencia documental / motivo</dt><dd>{{ referencia }}</dd></div>
+        <div><dt>Tipo</dt><dd>{{ subtypeLabel }}</dd></div>
+        @if (needsSupplier()) { <div><dt>Proveedor</dt><dd>{{ supplierName }}</dd></div> }
+        @if (needsBeneficiary()) { <div><dt>Beneficiario</dt><dd>{{ beneficiario }}</dd></div> }
+        @if (motivo) { <div><dt>Motivo</dt><dd>{{ motivo }}</dd></div> }
+        @if (observaciones) { <div><dt>Observaciones</dt><dd>{{ observaciones }}</dd></div> }
+      </dl>
+      <ul class="confirmation-products">
+        @for (line of detalles; track $index) {
+          @if (productFor(line.idProducto); as product) {
+            <li>
+              <div><strong>{{ product.codigo }} · {{ product.nombre }}</strong><span>{{ line.cantidad }} unidades</span></div>
+              @if (currentStock(line) !== null) {
+                <small>Stock actual: {{ currentStock(line) }} · Stock proyectado: {{ projectedStock(line) }}</small>
+              }
+            </li>
+          }
+        }
+      </ul>
+      @if (confirmationError()) { <p class="confirmation-error" role="alert">{{ confirmationError() }}</p> }
+    </app-confirmation-dialog>
+  }
+</main>

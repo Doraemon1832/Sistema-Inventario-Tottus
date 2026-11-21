@@ -1,0 +1,47 @@
+.users-page { width: min(100%, 1500px); margin-inline: auto; padding: clamp(1rem, 2.5vw, 2rem); display: grid; gap: 1.25rem; color: var(--text-primary); }
+.users-page > header { display: grid; gap: .35rem; }
+.users-page h1 { font-size: clamp(1.45rem, 2vw, 2rem); line-height: 1.2; }
+.users-page header > p:last-child, .help { color: var(--text-secondary); line-height: 1.5; }
+.eyebrow { color: var(--accent-strong); font-weight: 800; font-size: .75rem; letter-spacing: .12em; }
+.panel { min-width: 0; padding: clamp(1rem, 2vw, 1.5rem); border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--tottus-shadow-sm); }
+.panel h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+.user-filters { display: flex; flex-wrap: wrap; gap: .8rem; margin-bottom: 1rem; }
+.user-filters label, .access-editor form > label { display: grid; gap: .35rem; color: var(--text-secondary); font-size: .87rem; font-weight: 650; }
+.user-filters select, .access-editor select { min-width: min(100%, 220px); min-height: 40px; padding: .55rem .7rem; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text-primary); background: var(--input-bg); }
+.access-editor form { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1rem; }
+.access-editor fieldset { display: flex; flex-wrap: wrap; gap: .6rem 1rem; padding: .7rem; border: 1px solid var(--border); border-radius: 8px; }
+.access-editor .actions { margin-left: auto; }
+.user-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1rem; }
+.user-form > label { display: grid; gap: .4rem; color: var(--text-secondary); font-weight: 650; font-size: .9rem; }
+.user-form input:not([type=checkbox]), .user-form select, .table-wrap input { width: 100%; min-height: 42px; padding: .65rem .75rem; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text-primary); background: var(--input-bg); }
+.user-form fieldset { display: flex; flex-wrap: wrap; gap: .65rem 1rem; min-width: 0; padding: .8rem; border: 1px solid var(--border); border-radius: 9px; }
+.user-form legend { padding-inline: .25rem; font-size: .85rem; font-weight: 700; }
+.site-choice, .global-choice { display: flex; align-items: center; gap: .5rem; color: var(--text-secondary); }
+.help { grid-column: 1 / -1; font-size: .85rem; }
+.user-form button, .actions button { min-height: 40px; padding: .55rem .85rem; border: 1px solid var(--button-primary); border-radius: 8px; color: #fff; background: var(--button-primary); font-weight: 700; }
+.user-form button:disabled { opacity: .65; cursor: wait; }
+.actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+.actions .secondary { color: var(--text-primary); background: var(--surface); border-color: var(--border-strong); }
+.notice { padding: .8rem 1rem; border-radius: 9px; line-height: 1.45; }
+.notice.error { color: var(--danger-text); border: 1px solid var(--danger-border); background: var(--danger-bg); }
+.notice.success { color: var(--success-text); background: var(--success-bg); }
+.table-wrap { width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; table-layout: auto; }
+th, td { padding: .7rem .65rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+th { color: var(--text-secondary); background: var(--surface-soft); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+td { font-size: .88rem; }
+td input { min-width: 135px; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+@media (max-width: 800px) { .user-form { grid-template-columns: 1fr; } .help { grid-column: auto; } }
+@media (max-width: 640px) {
+  .users-page { padding: .85rem; }
+  .table-wrap { overflow: visible; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  tbody { display: grid; gap: .75rem; }
+  tbody tr { padding: .75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  td { display: grid; grid-template-columns: minmax(7.5rem, 36%) minmax(0, 1fr); gap: .5rem; padding: .45rem 0; border-bottom: 1px solid var(--border); }
+  td::before { content: attr(data-label); color: var(--text-secondary); font-size: .78rem; font-weight: 700; }
+  td:last-child { border-bottom: 0; }
+  td[colspan] { display: block; }
+}

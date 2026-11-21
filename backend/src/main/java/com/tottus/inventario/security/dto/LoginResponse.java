@@ -1,5 +1,6 @@
 package com.tottus.inventario.security.dto;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,4 +17,7 @@ public class LoginResponse {
     private String rol;
     private Integer idSede;
     private String nombreSede;
+    private List<Integer> idSedesAutorizadas;
+    private boolean accesoGlobal;
+    private boolean cambioPasswordRequerido;
 }

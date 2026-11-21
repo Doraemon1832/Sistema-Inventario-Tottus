@@ -1,0 +1,38 @@
+<main class="users-page">
+  <header><p class="eyebrow">ADMINISTRACIÓN</p><h1>Usuarios y permisos por sede</h1><p>Las cuentas quedan vinculadas a sus sedes. Las contraseñas no se devuelven por la API.</p></header>
+  @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice success" role="status">{{ message() }}</p> }
+  <section class="panel"><h2>Crear cuenta</h2>
+    <form (ngSubmit)="create()" class="user-form">
+      <label>Nombre de usuario<input name="username" [(ngModel)]="username" maxlength="50" autocomplete="off" required placeholder="operador.megaplaza" /></label>
+      <label>Rol<select name="role" [(ngModel)]="role" required>@for (option of roleOptions; track option) { <option [value]="option">{{ option.replace('_', ' ') }}</option> } @if (canGrantGlobal) { <option value="ADMINISTRADOR">ADMINISTRADOR</option> }</select></label>
+      <fieldset><legend>Sedes autorizadas</legend>@for (site of sites(); track site.idSede) { <label class="site-choice"><input type="checkbox" [checked]="selectedSites.includes(site.idSede)" (change)="$any($event.target).checked ? selectedSites = [...selectedSites, site.idSede] : selectedSites = selectedSites.filter(id => id !== site.idSede)" />{{ site.nombre }}</label> }</fieldset>
+      @if (canGrantGlobal) { <label class="global-choice"><input type="checkbox" name="global" [(ngModel)]="accessGlobal" /> Acceso administrativo global</label> }
+      <label>Contraseña inicial<input name="password" type="password" [(ngModel)]="password" minlength="12" maxlength="72" autocomplete="new-password" required /></label>
+      <p class="help">Contraseña individual de al menos 12 caracteres. Se almacena con hash y debe cambiarse antes de operar.</p>
+      <button type="submit" [disabled]="busy()">{{ busy() ? 'Guardando…' : 'Crear cuenta' }}</button>
+    </form>
+  </section>
+  <section class="panel"><h2>Cuentas autorizadas</h2>
+    <div class="user-filters" aria-label="Filtros de usuarios">
+      <label>Sede<select name="filterSite" [(ngModel)]="filterSiteId" (ngModelChange)="load()"><option [ngValue]="null">Todas las sedes autorizadas</option>@for (site of sites(); track site.idSede) { <option [ngValue]="site.idSede">{{ site.nombre }}</option> }</select></label>
+      <label>Rol<select name="filterRole" [(ngModel)]="filterRole" (ngModelChange)="load()"><option value="">Todos los roles</option>@for (option of ['ADMINISTRADOR','JEFE_INVENTARIO','OPERADOR_ALMACEN','VENDEDOR','ENCARGADO_COMPRAS']; track option) { <option [value]="option">{{ option.replace('_', ' ') }}</option> }</select></label>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Sede principal</th><th>Sedes autorizadas</th><th>Estado</th><th>Contraseña</th><th>Acciones</th></tr></thead><tbody>
+      @for (user of users(); track user.idUsuario) {
+        <tr><td data-label="Usuario"><strong>{{ user.usuario }}</strong></td><td data-label="Rol">{{ user.rol }}</td><td data-label="Sede principal">{{ user.sedePrincipal || 'Global' }}</td><td data-label="Sedes autorizadas">{{ user.accesoGlobal ? 'Todas las sedes activas' : siteNames(user.idSedesAutorizadas) }}</td><td data-label="Estado">{{ user.estado ? (user.cambioPasswordRequerido ? 'Cambio de contraseña pendiente' : 'Activa') : 'Inactiva' }}</td>
+          <td data-label="Restablecer contraseña">@if (resetTarget === user.idUsuario) { <input type="password" [(ngModel)]="resetPassword" [name]="'reset-' + user.idUsuario" minlength="12" autocomplete="new-password" aria-label="Nueva contraseña" /> }</td>
+          <td data-label="Acciones"><div class="actions"><button type="button" class="secondary" (click)="beginEdit(user)">Editar rol/sedes</button><button type="button" class="secondary" (click)="toggle(user)">{{ user.estado ? 'Desactivar' : 'Activar' }}</button>@if (resetTarget === user.idUsuario) { <button type="button" (click)="reset(user)">Guardar clave</button> } @else { <button type="button" class="secondary" (click)="resetTarget = user.idUsuario">Restablecer clave</button> }</div></td>
+        </tr>
+        @if (editingUser === user.idUsuario) {
+          <tr><td class="access-editor" colspan="7"><form (ngSubmit)="saveAccess(user)">
+            <label>Rol<select name="editRole" [(ngModel)]="editRole">@for (option of roleOptions; track option) { <option [value]="option">{{ option.replace('_', ' ') }}</option> } @if (canGrantGlobal) { <option value="ADMINISTRADOR">ADMINISTRADOR</option> }</select></label>
+            <fieldset><legend>Sedes autorizadas</legend>@for (site of sites(); track site.idSede) { <label class="site-choice"><input type="checkbox" [checked]="editSites.includes(site.idSede)" (change)="toggleEditSite(site.idSede, $any($event.target).checked)" />{{ site.nombre }}</label> }</fieldset>
+            @if (canGrantGlobal) { <label class="global-choice"><input type="checkbox" name="editGlobal" [(ngModel)]="editGlobal" /> Acceso global</label> }
+            <div class="actions"><button type="submit">Guardar permisos</button><button type="button" class="secondary" (click)="editingUser = null">Cancelar</button></div>
+          </form></td></tr>
+        }
+      } @empty { <tr><td colspan="7">No hay cuentas para las sedes autorizadas.</td></tr> }
+    </tbody></table></div>
+  </section>
+</main>

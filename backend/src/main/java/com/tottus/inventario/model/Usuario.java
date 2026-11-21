@@ -33,4 +33,12 @@ public class Usuario {
 
     @Column(name = "estado")
     private Boolean estado;
+
+    @Column(name = "acceso_global", nullable = false)
+    @Builder.Default
+    private Boolean accesoGlobal = false;
+
+    @Column(name = "cambio_password_requerido", nullable = false)
+    @Builder.Default
+    private Boolean cambioPasswordRequerido = false;
 }
